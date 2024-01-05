@@ -25,7 +25,15 @@ int main(int argc, char *argv[]) {
     }
 
     readArguments(argv[1]);
+    createSharedMemoryForItems();
     readProducts();
+
+    for (int  i = 0 ;i < Products_count ;i++){
+        printf("name %s\n",shared_Products[i].name);
+        printf("quantity_on_shelves %d\n",shared_Products[i].quantity_on_shelves);
+        printf("quantity_in_storage %d\n",shared_Products[i].quantity_in_storage);
+        printf("threshold %d\n",shared_Products[i].threshold);
+    }
 
     return 0;
 }
@@ -62,21 +70,21 @@ void readArguments(char *file_name) {
     fclose(file);
 }
 
-//void createSharedMemoryForItems() {
-//    /* Create a shared memory segment */
-//    shm_id = shmget(getpid(), sizeof(Products) * MAX_SIZE, IPC_CREAT | 0666);
-//    if (shm_id == -1) {
-//        perror("Error creating shared memory in the parent process");
-//        exit(EXIT_FAILURE);
-//    }
-//
-//    /* Attach the shared memory segment */
-//    shared_Products = (Products *) shmat(shm_id, NULL, 0);
-//    if (shared_Products == (void *) -1) {
-//        perror("Error attaching shared memory in the parent process");
-//        exit(EXIT_FAILURE);
-//    }
-//}
+void createSharedMemoryForItems() {
+    /* Create a shared memory segment */
+    shm_id = shmget(getpid(), sizeof(Products) * MAX_SIZE, IPC_CREAT | 0666);
+    if (shm_id == -1) {
+        perror("Error creating shared memory in the parent process");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Attach the shared memory segment */
+    shared_Products = (Products *) shmat(shm_id, NULL, 0);
+    if (shared_Products == (void *) -1) {
+        perror("Error attaching shared memory in the parent process");
+        exit(EXIT_FAILURE);
+    }
+}
 
 
 void readProducts() {
