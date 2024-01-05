@@ -1,0 +1,7 @@
+num_of_product = 70
+num_of_product_on_shelves = 10
+product_threshold = 2
+arrival_rate_min = 1
+arrival_rate_max = 3
+simulation_threshold = 2000
+
