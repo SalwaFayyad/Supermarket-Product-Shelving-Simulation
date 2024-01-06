@@ -10,8 +10,6 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
-#include <sys/sem.h>
-#include <signal.h>
 #include <limits.h>
 #include <errno.h>
 #include <sys/msg.h>
@@ -21,10 +19,11 @@
 #include <math.h>
 #include <stdbool.h>
 #include "sys/msg.h"
+#include <pthread.h>
+
 
 #define MAX_SIZE  200
-#define MAX_SHELVES_TEAM  10
-#define MAX_EMPLOYEE_TEAM  10
+#define MAX_SHELVES_EMPLOYEES  6
 #define MAX_CUSTOMERS 500
 
 
@@ -40,18 +39,17 @@ typedef struct{
     int quantity_on_shelves;
     int quantity_in_storage;
     int threshold;
-    int last_item_flag;
-}Products;
+  //  int last_item_flag;
+}Product;
 
-typedef struct{
+typedef struct {
     int id;
-//    int manager_thread;
-//    int employee_threads;
-//    int current_task;
-
-}Shelving_teams;
-
-
+    pthread_t manager_thread;
+    pthread_t *employee_threads;
+    Product *current_task;
+    pthread_mutex_t task_mutex;
+    pthread_cond_t task_available;
+} ShelvingTeam;
 
 /* Function to generate random numbers */
 int generateRandomNumber(int min, int max) {
@@ -69,27 +67,6 @@ int generateRandomNumber(int min, int max) {
     return randomNumber;
 }
 
-void lock(int key, int index, char class_name[]) {
-    int sem_id = semget(key, 0, 0);
-    struct sembuf acquire_element = {index, -1, 0};
-    if (semop(sem_id, &acquire_element, 1) == -1) {
-        char error_message[100];  // Adjust the size as needed
-        snprintf(error_message, sizeof(error_message), "Error acquiring semaphore in %s", class_name);
-        perror(error_message);
-        exit(EXIT_FAILURE);
-    }
-}
-
-void unlock(int key, int index, char class_name[]) {
-    int sem_id = semget(key, 0, 0);
-    struct sembuf release_element = {index, 1, 0};
-    if (semop(sem_id, &release_element, 1) == -1) {
-        char error_message[100];  // Adjust the size as needed
-        snprintf(error_message, sizeof(error_message), "Error releasing semaphore in %s", class_name);
-        perror(error_message);
-        exit(EXIT_FAILURE);
-    }
-}
 
 
 #endif //REALTIME_PROJECT1_LOCAL_H

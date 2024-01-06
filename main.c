@@ -9,13 +9,14 @@ int arrival_rate_max ;
 int simulation_threshold ;
 
 void readArguments(char *file_name);
-void createSharedMemoryForItems();
+void createSharedMemoryForProducts();
 void readProducts();
+void generateMultipleShelvingTeams();
 
 
-int shm_id ,Products_count;
-Products *shared_Products;
-
+int shm_id ,Products_count, nShelvingTeams = 5;
+Product *shared_Products;
+ShelvingTeam *shelvingteam;
 int main(int argc, char *argv[]) {
     if (argc != 2) {
         printf("Uh oh! Something went wrong.\n");
@@ -25,15 +26,16 @@ int main(int argc, char *argv[]) {
     }
 
     readArguments(argv[1]);
-    createSharedMemoryForItems();
+    createSharedMemoryForProducts();
     readProducts();
+    generateMultipleShelvingTeams();
 
-    for (int  i = 0 ;i < Products_count ;i++){
-        printf("name %s\n",shared_Products[i].name);
-        printf("quantity_on_shelves %d\n",shared_Products[i].quantity_on_shelves);
-        printf("quantity_in_storage %d\n",shared_Products[i].quantity_in_storage);
-        printf("threshold %d\n",shared_Products[i].threshold);
-    }
+//    for (int  i = 0 ;i < Products_count ;i++){
+//        printf("name %s\n",shared_Products[i].name);
+//        printf("quantity_on_shelves %d\n",shared_Products[i].quantity_on_shelves);
+//        printf("quantity_in_storage %d\n",shared_Products[i].quantity_in_storage);
+//        printf("threshold %d\n",shared_Products[i].threshold);
+//    }
 
     return 0;
 }
@@ -70,16 +72,16 @@ void readArguments(char *file_name) {
     fclose(file);
 }
 
-void createSharedMemoryForItems() {
+void createSharedMemoryForProducts() {
     /* Create a shared memory segment */
-    shm_id = shmget(getpid(), sizeof(Products) * MAX_SIZE, IPC_CREAT | 0666);
+    shm_id = shmget(getpid(), sizeof(Product) * MAX_SIZE, IPC_CREAT | 0666);
     if (shm_id == -1) {
         perror("Error creating shared memory in the parent process");
         exit(EXIT_FAILURE);
     }
 
     /* Attach the shared memory segment */
-    shared_Products = (Products *) shmat(shm_id, NULL, 0);
+    shared_Products = (Product *) shmat(shm_id, NULL, 0);
     if (shared_Products == (void *) -1) {
         perror("Error attaching shared memory in the parent process");
         exit(EXIT_FAILURE);
@@ -118,15 +120,31 @@ void readProducts() {
                 shared_Products[Products_count].quantity_in_storage =  atof(token) - num_of_product_on_shelves;
             }
             shared_Products[Products_count].threshold = product_threshold;
-            shared_Products[Products_count].last_item_flag = 0;
             token = strtok(NULL, ","); /* Move to the next token */
         }
         Products_count++;
-        if (Products_count >= MAX_SIZE) { /* Break out of the loop if the maximum size is reached */
+        if (Products_count >= num_of_product) { /* Break out of the loop if the maximum size is reached */
             break;
         }
     }
     /* Set the last_item_flag of the last item to 1 (indicating it's the last item) */
-    shared_Products[Products_count - 1].last_item_flag = 1;
+   // shared_Products[Products_count - 1].last_item_flag = 1;
     fclose(file); /* Close the file */
+}
+
+void generateMultipleShelvingTeams() {
+    srand(time(NULL) % getpid());
+    for (int i = 0; i < nShelvingTeams; i++) {
+        pid_t shelving_pid = fork(); /* Fork a child process */
+        if (shelving_pid == -1) {
+            perror("Error forking cashier process"); /* Error while forking */
+            exit(EXIT_FAILURE);
+        } else if (shelving_pid == 0) {
+            execlp("./ShelvingTeam", "./ShelvingTeam", (char *) NULL);
+        }
+//        } else {
+//            /* Parent process */
+//            childProcesses[childCounter++] = cash_pid;
+//        }
+    }
 }

@@ -1,4 +1,4 @@
-Apple, 10
+Apple, 20
 Banana, 20
 Milk, 30
 Bread, 15
