@@ -25,22 +25,24 @@
 #define MAX_SIZE  200
 #define MAX_SHELVES_EMPLOYEES  6
 #define MAX_CUSTOMERS 500
-
-
-typedef struct {
-    int id;
-    int arrival_time;
-    /* [i][0] -> index on the items shared memory, [i][1] -> # of quantity of the items */
-    int shopping_list[MAX_SIZE][2];
-} Customer;
+#define CUSTOMERS_KEY 1001
 
 typedef struct{
     char name[100];
     int quantity_on_shelves;
     int quantity_in_storage;
     int threshold;
-  //  int last_item_flag;
+    pthread_mutex_t task_mutex;
+    //  int last_item_flag;
 }Product;
+
+typedef struct {
+    int id;
+    int arrival_time;
+    /* [i][0] -> index on the items shared memory, [i][1] -> # of quantity of the items */
+    //int shopping_list[MAX_SIZE][2];
+    Product *shopping_list;
+} Customer;
 
 typedef struct {
     int id;
