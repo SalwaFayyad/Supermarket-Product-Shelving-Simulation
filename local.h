@@ -41,7 +41,7 @@ typedef struct {
     int arrival_time;
     /* [i][0] -> index on the items shared memory, [i][1] -> # of quantity of the items */
     //int shopping_list[MAX_SIZE][2];
-    Product *shopping_list;
+    int shopping_list[MAX_SIZE][2];
 } Customer;
 
 typedef struct {

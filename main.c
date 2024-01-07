@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
     createSharedMemoryForCustomers();
     for(int i = 0 ;i < 5 ;i++){
         createCustomers();
-        sleep(2);
+        sleep(5);
     }
 
 //    for (int  i = 0 ;i < Products_count ;i++){

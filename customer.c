@@ -1,6 +1,6 @@
 #include "local.h"
 
-int num_of_product,customer_index, customer_shm_id,shm_id,nItems;
+int num_of_product,customer_index, customer_shm_id,shm_id;
 Customer *customer ,*customers_shared_memory;
 Product *shared_products;
 
@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
     num_of_product = atoi(argv[1]);
     getSharedMemories();
     createCustomer();
-    sleep(3);
+    //sleep(5);
     printf("chooseItems 1\n");
     chooseItems();
     printf("chooseItems 2\n");
@@ -82,35 +82,39 @@ void createCustomer() {
 
 void chooseItems() {
     int shop_time = 0,shopping_list_index = 0;
-    printf("out the for");
+    printf("out the for\n");
     for (int i = 0; i < num_of_product; ++i) {
-        printf("inside the for");
+        if(shop_time >= 1){
+            break;
+        }
         pthread_mutex_lock(&shared_products[i].task_mutex);
-        printf("inside the for");
-        if (shared_products[i].quantity_on_shelves != 0 && rand() % 3 == 0) {
-            int qnt = 1;  // Choose only one quantity
-            printf("inside the first if");
+     //   printf("name %s quantity %d\n",shared_products[i].name,shared_products[i].quantity_on_shelves);
 
-            // Check if there is enough quantity on shelves
-            if (qnt <= shared_products[i].quantity_on_shelves) {
-                printf("inside the second if");
+        if (shared_products[i].quantity_on_shelves != 0 && rand() % 5 == 0) {
+            srand(time(NULL) % getpid());
+         //   int qnt = 1;
+            int qnt;
+            if (shared_products[i].quantity_on_shelves< 3) {
+                qnt = generateRandomNumber(0, shared_products[i].quantity_on_shelves);
+            } else {
+                qnt = generateRandomNumber(0, 3);
+            }           shared_products[i].quantity_on_shelves -= qnt;
+           customer->shopping_list[shopping_list_index][1] = qnt;
+           customers_shared_memory[customer_index].shopping_list[shopping_list_index][1] = qnt;
 
-                // Update the chosen item's quantity in the shared memory and put it in the customer bucket
-                shared_products[i].quantity_on_shelves -= qnt;
+           customer->shopping_list[shopping_list_index][0] = i;
+           customers_shared_memory[customer_index].shopping_list[shopping_list_index][0] = i;
 
-                customer->shopping_list[shopping_list_index].quantity_on_shelves = qnt;
-                // You may want to copy the name as well
-                printf("chosen products %s for customer %d \n",customer->shopping_list[shopping_list_index].name,getpid());
+           printf("chosen products %d for customer %d and the quantity is %d \n", customer->shopping_list[shopping_list_index][0],getpid(),customer->shopping_list[shopping_list_index][1]);
 
-                shopping_list_index++;
+            shop_time += 1 /60;
+            usleep(10000);
+           shopping_list_index++;
 
-                sleep(1);
-            }
         }
         pthread_mutex_unlock(&shared_products[i].task_mutex);
-
+       // sleep(1);
     }
-    sleep(4);
 }
 
 
