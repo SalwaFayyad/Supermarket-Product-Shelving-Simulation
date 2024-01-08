@@ -134,6 +134,7 @@ void readProducts() {
                 shared_Products[Products_count].quantity_in_storage =  atof(token) - num_of_product_on_shelves;
             }
             shared_Products[Products_count].threshold = product_threshold;
+            shared_Products[Products_count].is_claimed = 0;
             token = strtok(NULL, ","); /* Move to the next token */
         }
         shared_Products->task_mutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;

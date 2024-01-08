@@ -20,6 +20,7 @@
 #include <stdbool.h>
 #include "sys/msg.h"
 #include <pthread.h>
+#include <stdatomic.h>
 
 
 #define MAX_SIZE  200
@@ -32,6 +33,7 @@ typedef struct{
     int quantity_on_shelves;
     int quantity_in_storage;
     int threshold;
+    int is_claimed;
     pthread_mutex_t task_mutex;
     //  int last_item_flag;
 }Product;
