@@ -40,7 +40,6 @@ typedef struct {
     int id;
     int arrival_time;
     /* [i][0] -> index on the items shared memory, [i][1] -> # of quantity of the items */
-    //int shopping_list[MAX_SIZE][2];
     int shopping_list[MAX_SIZE][2];
 } Customer;
 
@@ -48,7 +47,7 @@ typedef struct {
     int id;
     pthread_t manager_thread;
     pthread_t *employee_threads;
-    Product *current_task;
+    Product current_task;
     pthread_mutex_t task_mutex;
     pthread_cond_t task_available;
 } ShelvingTeam;

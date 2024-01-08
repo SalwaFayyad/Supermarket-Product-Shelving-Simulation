@@ -13,8 +13,11 @@ void createSharedMemoryForProducts();
 void readProducts();
 void generateMultipleShelvingTeams();
 void createSharedMemoryForCustomers();
+void generateShelvingTeam();
 void createCustomers();
 void cleanup();
+
+/* PUT THE SHELVING TEAM IN SHARED MEMORY*/
 
 int shm_id ,Products_count, nShelvingTeams = 5,customers_shm_id;
 Product *shared_Products;
@@ -32,12 +35,13 @@ int main(int argc, char *argv[]) {
     readArguments(argv[1]);
     createSharedMemoryForProducts();
     readProducts();
-    //generateMultipleShelvingTeams();
     createSharedMemoryForCustomers();
     for(int i = 0 ;i < 5 ;i++){
         createCustomers();
         sleep(5);
     }
+    generateMultipleShelvingTeams();
+
 
 //    for (int  i = 0 ;i < Products_count ;i++){
 //        printf("name %s\n",shared_Products[i].name);
@@ -143,6 +147,30 @@ void readProducts() {
     fclose(file); /* Close the file */
 }
 
+
+void generateShelvingTeam(){
+    char num_of_product_str[20];
+    char product_threshold_str[20];
+    char simulation_threshold_str[20];
+    char num_of_product_on_shelves_str[20];
+
+
+
+    /* Convert integer values to strings */
+    sprintf(num_of_product_str, "%d", num_of_product);
+    sprintf(product_threshold_str, "%d", product_threshold);
+    sprintf(simulation_threshold_str, "%d", simulation_threshold);
+    sprintf(num_of_product_on_shelves_str, "%d", num_of_product_on_shelves);
+
+
+    /* Execute the customer process with command-line arguments */
+    execlp("./ShelvingTeam", "./ShelvingTeam",num_of_product_str,product_threshold_str,simulation_threshold_str,num_of_product_on_shelves_str, (char *) NULL);
+
+    /* If execlp fails */
+    perror("Error executing customer process");
+    exit(EXIT_FAILURE);
+}
+
 void generateMultipleShelvingTeams() {
     srand(time(NULL) % getpid());
     for (int i = 0; i < nShelvingTeams; i++) {
@@ -151,7 +179,8 @@ void generateMultipleShelvingTeams() {
             perror("Error forking cashier process"); /* Error while forking */
             exit(EXIT_FAILURE);
         } else if (shelving_pid == 0) {
-            execlp("./ShelvingTeam", "./ShelvingTeam", (char *) NULL);
+            generateShelvingTeam();
+
         }
 //        } else {
 //            /* Parent process */
@@ -162,13 +191,13 @@ void generateMultipleShelvingTeams() {
 
 void generateCustomer() {
 
-    char shopping_num_of_product[20];
+    char num_of_product_str[20];
 
     /* Convert integer values to strings */
-    sprintf(shopping_num_of_product, "%d", num_of_product);
+    sprintf(num_of_product_str, "%d", num_of_product);
 
     /* Execute the customer process with command-line arguments */
-    execlp("./customer", "./customer",shopping_num_of_product, (char *) NULL);
+    execlp("./customer", "./customer",num_of_product_str, (char *) NULL);
 
     /* If execlp fails */
     perror("Error executing customer process");

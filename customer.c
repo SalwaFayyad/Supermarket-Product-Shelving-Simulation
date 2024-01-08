@@ -20,10 +20,7 @@ int main(int argc, char *argv[]) {
     num_of_product = atoi(argv[1]);
     getSharedMemories();
     createCustomer();
-    //sleep(5);
-    printf("chooseItems 1\n");
     chooseItems();
-    printf("chooseItems 2\n");
 
     //cleanup();
 
@@ -82,38 +79,36 @@ void createCustomer() {
 
 void chooseItems() {
     int shop_time = 0,shopping_list_index = 0;
-    printf("out the for\n");
     for (int i = 0; i < num_of_product; ++i) {
-        if(shop_time >= 1){
+        if(shop_time >= 0.5){
             break;
         }
         pthread_mutex_lock(&shared_products[i].task_mutex);
-     //   printf("name %s quantity %d\n",shared_products[i].name,shared_products[i].quantity_on_shelves);
 
-        if (shared_products[i].quantity_on_shelves != 0 && rand() % 5 == 0) {
+        if (shared_products[i].quantity_on_shelves != 0 && rand() % 3 == 0) {
             srand(time(NULL) % getpid());
-         //   int qnt = 1;
             int qnt;
-            if (shared_products[i].quantity_on_shelves< 3) {
+            if (shared_products[i].quantity_on_shelves < 7) {
                 qnt = generateRandomNumber(0, shared_products[i].quantity_on_shelves);
             } else {
-                qnt = generateRandomNumber(0, 3);
-            }           shared_products[i].quantity_on_shelves -= qnt;
+                qnt = generateRandomNumber(0, 7);
+            }
+
+            shared_products[i].quantity_on_shelves -= qnt;
            customer->shopping_list[shopping_list_index][1] = qnt;
            customers_shared_memory[customer_index].shopping_list[shopping_list_index][1] = qnt;
 
            customer->shopping_list[shopping_list_index][0] = i;
            customers_shared_memory[customer_index].shopping_list[shopping_list_index][0] = i;
 
-           printf("chosen products %d for customer %d and the quantity is %d \n", customer->shopping_list[shopping_list_index][0],getpid(),customer->shopping_list[shopping_list_index][1]);
+          // printf("chosen products %d for customer %d and the quantity is %d \n", customer->shopping_list[shopping_list_index][0],getpid(),customer->shopping_list[shopping_list_index][1]);
 
             shop_time += 1 /60;
-            usleep(10000);
+            usleep(100000);
            shopping_list_index++;
 
         }
         pthread_mutex_unlock(&shared_products[i].task_mutex);
-       // sleep(1);
     }
 }
 
