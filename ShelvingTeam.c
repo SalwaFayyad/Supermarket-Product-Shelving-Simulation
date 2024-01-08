@@ -11,7 +11,7 @@ void  do_wrap_up(int i,char *name,int j);
 void do_wrap_up2();
 int can_claim_task(Product *product);
 
-int shm_id,num_of_product,product_threshold,simulation_threshold,num_of_product_on_shelves,rollingCart = 0,ind;
+int shm_id,num_of_product,product_threshold,simulation_threshold,num_of_product_on_shelves,rollingCart = 0,ind, manager_index;
 atomic_flag task_claimed  ;
 
 pthread_mutex_t mutex_employees[MAX_SHELVES_EMPLOYEES];
@@ -51,7 +51,7 @@ void createShelvingteam() {
     shelvingteam->employee_threads = malloc(MAX_SHELVES_EMPLOYEES * sizeof(pthread_t));
 
     // Generate a random manager index within the employee range (including 0)
-    int manager_index = generateRandomNumber(0,MAX_SHELVES_EMPLOYEES - 1) ;
+     manager_index = generateRandomNumber(0,MAX_SHELVES_EMPLOYEES - 1) ;
     //printf("the manager_index = %d\n",manager_index);
     for (int i = 0; i < MAX_SHELVES_EMPLOYEES; i++) {  // Start loop from 0
         pthread_mutex_lock(&mutex_employees[i]);
@@ -69,11 +69,15 @@ void createShelvingteam() {
 
 
     for (int i = 0; i < MAX_SHELVES_EMPLOYEES; i++) {
+        char *name;
         if (i == manager_index) {
+            name = "manger";
             pthread_join(shelvingteam->manager_thread, NULL);
         } else {
+            name="employee";
             pthread_join(shelvingteam->employee_threads[i], NULL);
         }
+      //  do_wrap_up(i,name,getpid());
     }
 
     printf("thread %d have completed.\n",getpid());
@@ -126,24 +130,25 @@ void mangerThreads(void *arg) {
    // pthread_mutex_lock(&shelvingteam->task_mutex);
         int task_found = 0;
         for (int i = 0; i < num_of_product; i++) {
-            pthread_mutex_lock(&shared_products[i].task_mutex);
+       //     pthread_mutex_lock(&shared_products[i].task_mutex);
             if (shared_products[i].quantity_on_shelves <= product_threshold) {
-                printf("in the if 1\n");
-                if (can_claim_task(&shared_products[i])) {
-                    printf("in the if 2\n");
+                printf("product %s in team %d with the manger %d\n",shelvingteam->current_task.name,getpid(), manager_index);
 
-                    shelvingteam->current_task = shared_products[i];
-                    if(shared_products[i].quantity_in_storage < num_of_product_on_shelves - 2){
-                        rollingCart = shared_products[i].quantity_in_storage;
-                      }else{
-                        rollingCart = num_of_product_on_shelves - 2;
-                      }
-                        printf("rollingCart %d product %s in team %d\n",rollingCart,shelvingteam->current_task.name,getpid());
-                    task_found = 1;
-                    break;
-                }
+//                if (can_claim_task(&shared_products[i])) {
+//                    printf("in the if 2\n");
+//
+//                    shelvingteam->current_task = shared_products[i];
+//                    if(shared_products[i].quantity_in_storage < num_of_product_on_shelves - 2){
+//                        rollingCart = shared_products[i].quantity_in_storage;
+//                      }else{
+//                        rollingCart = num_of_product_on_shelves - 2;
+//                      }
+//                        printf("rollingCart %d product %s in team %d\n",rollingCart,shelvingteam->current_task.name,getpid());
+//                    task_found = 1;
+//                    break;
+//                }
             }
-            pthread_mutex_unlock(&shared_products[i].task_mutex);
+        //    pthread_mutex_unlock(&shared_products[i].task_mutex);
         }
 
         if (task_found) {
