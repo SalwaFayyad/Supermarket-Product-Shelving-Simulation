@@ -9,7 +9,7 @@ int arrival_rate_max ;
 int simulation_threshold ;
 
 void readArguments(char *file_name);
-void createSharedMemorys();
+void createSharedMemories();
 void readProducts();
 void generateShelvingTeams();
 void cleanup();
@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
     }
 
     readArguments(argv[1]);
-    createSharedMemorys();
+    createSharedMemories();
     createSemaphoresForProducts();
     readProducts();
     //generateShelvingTeams();
@@ -180,7 +180,7 @@ void readArguments(char *file_name) {
     fclose(file);
 }
 
-void createSharedMemorys() {
+void createSharedMemories() {
     /* Create a shared memory segment */
     shm_id = shmget(getpid(), sizeof(Product) * MAX_SIZE, IPC_CREAT | 0666);
     if (shm_id == -1) {
