@@ -1,9 +1,9 @@
 #include "local.h"
 #define PI 3.1415926535898
 
-int shm_id ,Products_count, nShelvingTeams = 5,customer_shm_id,shelving_shm_id,items_sem_id,shm_id_for_shelvingTeam;
+int shm_id ,products_count, nShelvingTeams = 5,customer_shm_id,shelving_shm_id,items_sem_id,shm_id_for_shelvingTeam;
 Product *shared_products;
-ShelvingTeam *sharedMemory_shelvingteam;
+ShelvingTeam *shared_shelvingTeams;
 Customer *customers_shared_memory;
 
 void getSharedMemorys() {
@@ -37,8 +37,8 @@ void getSharedMemorys() {
         perror("Error accessing shared memory in customer.c");
         exit(EXIT_FAILURE);
     }
-    sharedMemory_shelvingteam = (ShelvingTeam *) shmat((int) shm_id_for_shelvingTeam, NULL, 0);
-    if (sharedMemory_shelvingteam == (void *) -1) {
+    shared_shelvingTeams = (ShelvingTeam *) shmat((int) shm_id_for_shelvingTeam, NULL, 0);
+    if (shared_shelvingTeams == (void *) -1) {
         perror("Error attaching shared memory in customer.c");
         exit(EXIT_FAILURE);
     }

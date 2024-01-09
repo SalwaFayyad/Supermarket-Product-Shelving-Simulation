@@ -35,7 +35,6 @@ typedef struct{
     char name[100];
     int quantity_on_shelves;
     int quantity_in_storage;
-    int threshold;
     int is_claimed;
     pthread_mutex_t task_mutex;
     //  int last_item_flag;
@@ -56,6 +55,13 @@ typedef struct {
     pthread_mutex_t task_mutex;
     pthread_cond_t task_available;
 } ShelvingTeam;
+
+typedef struct {
+    int sender_id;
+    int receiver_id;
+    long type;
+    int product_index;
+} Message;
 
 /* Function to generate random numbers */
 int generateRandomNumber(int min, int max) {

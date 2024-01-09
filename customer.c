@@ -98,7 +98,7 @@ void chooseItems() {
             shared_products[i].quantity_on_shelves -= qnt;
            customer->shopping_list[shopping_list_index][1] = qnt;
            customers_shared_memory[customer_index].shopping_list[shopping_list_index][1] = qnt;
-
+            printf("customer %d bought %d from %s \n", getpid(), qnt, shared_products[i].name);
            customer->shopping_list[shopping_list_index][0] = i;
            customers_shared_memory[customer_index].shopping_list[shopping_list_index][0] = i;
 
