@@ -21,12 +21,15 @@
 #include "sys/msg.h"
 #include <pthread.h>
 #include <stdatomic.h>
+#include <sys/sem.h>
+
 
 
 #define MAX_SIZE  200
 #define MAX_SHELVES_EMPLOYEES  6
 #define MAX_CUSTOMERS 500
 #define CUSTOMERS_KEY 1001
+#define SHELVING_KEY 5000
 
 typedef struct{
     char name[100];
@@ -70,6 +73,26 @@ int generateRandomNumber(int min, int max) {
     return randomNumber;
 }
 
+void lock(int key, int index, char class_name[]) {
+    int sem_id = semget(key, 0, 0);
+    struct sembuf acquire_element = {index, -1, 0};
+    if (semop(sem_id, &acquire_element, 1) == -1) {
+        char error_message[100];  // Adjust the size as needed
+        snprintf(error_message, sizeof(error_message), "Error acquiring semaphore in %s", class_name);
+        perror(error_message);
+        exit(EXIT_FAILURE);
+    }
+}
 
+void unlock(int key, int index, char class_name[]) {
+    int sem_id = semget(key, 0, 0);
+    struct sembuf release_element = {index, 1, 0};
+    if (semop(sem_id, &release_element, 1) == -1) {
+        char error_message[100];  // Adjust the size as needed
+        snprintf(error_message, sizeof(error_message), "Error releasing semaphore in %s", class_name);
+        perror(error_message);
+        exit(EXIT_FAILURE);
+    }
+}
 
 #endif //REALTIME_PROJECT1_LOCAL_H

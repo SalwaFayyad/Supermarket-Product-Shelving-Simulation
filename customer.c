@@ -78,12 +78,13 @@ void createCustomer() {
 }
 
 void chooseItems() {
-    int shop_time = 0,shopping_list_index = 0;
+    float shop_time = 0.0;
+    int shopping_list_index = 0;
     for (int i = 0; i < num_of_product; ++i) {
         if(shop_time >= 0.5){
             break;
         }
-        pthread_mutex_lock(&shared_products[i].task_mutex);
+        lock(getppid(), i , "customer.c");
 
         if (shared_products[i].quantity_on_shelves != 0 && rand() % 3 == 0) {
             srand(time(NULL) % getpid());
@@ -93,7 +94,6 @@ void chooseItems() {
             } else {
                 qnt = generateRandomNumber(0, 7);
             }
-
             shared_products[i].quantity_on_shelves -= qnt;
            customer->shopping_list[shopping_list_index][1] = qnt;
            customers_shared_memory[customer_index].shopping_list[shopping_list_index][1] = qnt;
@@ -108,7 +108,7 @@ void chooseItems() {
            shopping_list_index++;
 
         }
-        pthread_mutex_unlock(&shared_products[i].task_mutex);
+        unlock(getppid(), i , "customer.c");
     }
 }
 

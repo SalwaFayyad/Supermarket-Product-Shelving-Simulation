@@ -1,17 +1,17 @@
 #include "local.h"
 
-ShelvingTeam *shelvingteam;
+ShelvingTeam *sharedMemory_shelvingteam;
 Product *shared_products;
 
 void createShelvingteam();
 void *employeeThreads(void *arg) ;
 void mangerThreads(void *arg);
-void getSharedProducts();
+void getSharedMemory();
 void  do_wrap_up(int i,char *name,int j);
 void do_wrap_up2();
 int can_claim_task(Product *product);
 
-int shm_id,num_of_product,product_threshold,simulation_threshold,num_of_product_on_shelves,rollingCart = 0,ind, manager_index;
+int shm_id,num_of_product,product_threshold,simulation_threshold,num_of_product_on_shelves,rollingCart = 0,ind, manager_index, shm_id_for_shelvingTeam;
 atomic_flag task_claimed  ;
 
 pthread_mutex_t mutex_employees[MAX_SHELVES_EMPLOYEES];
@@ -34,21 +34,21 @@ int main(int argc, char *argv[]) {
         pthread_mutex_init(&mutex_employees[i], NULL);
     }
 
-    getSharedProducts();
+    getSharedMemory();
     createShelvingteam();
     Free();
     exit(EXIT_SUCCESS);
 }
 
 void createShelvingteam() {
-    shelvingteam = malloc(sizeof(ShelvingTeam));
-    pthread_mutex_init(&shelvingteam->task_mutex, NULL);
+    sharedMemory_shelvingteam = malloc(sizeof(ShelvingTeam));
+    pthread_mutex_init(&sharedMemory_shelvingteam->task_mutex, NULL);
 
-    pthread_mutex_lock(&shelvingteam->task_mutex);
-    shelvingteam->id = getpid();
+    pthread_mutex_lock(&sharedMemory_shelvingteam->task_mutex);
+    sharedMemory_shelvingteam->id = getpid();
     printf("team %d created \n",getpid());
 
-    shelvingteam->employee_threads = malloc(MAX_SHELVES_EMPLOYEES * sizeof(pthread_t));
+    sharedMemory_shelvingteam->employee_threads = malloc(MAX_SHELVES_EMPLOYEES * sizeof(pthread_t));
 
     // Generate a random manager index within the employee range (including 0)
      manager_index = generateRandomNumber(0,MAX_SHELVES_EMPLOYEES - 1) ;
@@ -59,10 +59,10 @@ void createShelvingteam() {
 
         // Create manager thread at the chosen index
         if (i == manager_index) {
-            pthread_create(&shelvingteam->manager_thread, NULL, (void*)mangerThreads, (void*)&i);
+            pthread_create(&sharedMemory_shelvingteam->manager_thread, NULL, (void*)mangerThreads, (void*)&i);
         } else {
             // Create regular employee thread
-            pthread_create(&shelvingteam->employee_threads[i], NULL, (void*) employeeThreads, (void*)&i);
+            pthread_create(&sharedMemory_shelvingteam->employee_threads[i], NULL, (void*) employeeThreads, (void*)&i);
         }
         pthread_mutex_unlock(&mutex_employees[i]);
     }
@@ -72,16 +72,16 @@ void createShelvingteam() {
         char *name;
         if (i == manager_index) {
             name = "manger";
-            pthread_join(shelvingteam->manager_thread, NULL);
+            pthread_join(sharedMemory_shelvingteam->manager_thread, NULL);
         } else {
             name="employee";
-            pthread_join(shelvingteam->employee_threads[i], NULL);
+            pthread_join(sharedMemory_shelvingteam->employee_threads[i], NULL);
         }
       //  do_wrap_up(i,name,getpid());
     }
 
     printf("thread %d have completed.\n",getpid());
-    pthread_mutex_unlock(&shelvingteam->task_mutex);
+    pthread_mutex_unlock(&sharedMemory_shelvingteam->task_mutex);
 }
 
 
@@ -108,8 +108,8 @@ int can_claim_task(Product *product) {
 //           // printf("the product %s with quantity %d\n",shared_products[i].name,shared_products[i].quantity_on_shelves );
 //            chosen_index = i ;
 //           pthread_mutex_lock(&shared_products[i].task_mutex);
-//            shelvingteam[chosen_index].current_task = &shared_products[i];
-//            printf("product %s in team %d\n",shelvingteam[chosen_index].current_task->name,getpid());
+//            sharedMemory_shelvingteam[chosen_index].current_task = &shared_products[i];
+//            printf("product %s in team %d\n",sharedMemory_shelvingteam[chosen_index].current_task->name,getpid());
 //
 ////
 ////            if(shared_products[i].quantity_in_storage < num_of_product_on_shelves - 2){
@@ -117,8 +117,8 @@ int can_claim_task(Product *product) {
 ////            }else{
 ////                rollingCart = num_of_product_on_shelves - 2;
 ////            }
-////            printf("rollingCart %d product %s in team %d\n",rollingCart,shelvingteam[chosen_index].current_task->name,getpid());
-////         //   pthread_cond_broadcast(&shelvingteam->task_available);
+////            printf("rollingCart %d product %s in team %d\n",rollingCart,sharedMemory_shelvingteam[chosen_index].current_task->name,getpid());
+////         //   pthread_cond_broadcast(&sharedMemory_shelvingteam->task_available);
 ////            pthread_mutex_unlock(&shared_products[i].task_mutex);
 //////
 ////            break;
@@ -127,23 +127,23 @@ int can_claim_task(Product *product) {
 //}
 
 void mangerThreads(void *arg) {
-   // pthread_mutex_lock(&shelvingteam->task_mutex);
+   // pthread_mutex_lock(&sharedMemory_shelvingteam->task_mutex);
         int task_found = 0;
         for (int i = 0; i < num_of_product; i++) {
        //     pthread_mutex_lock(&shared_products[i].task_mutex);
             if (shared_products[i].quantity_on_shelves <= product_threshold) {
-                printf("product %s in team %d with the manger %d\n",shelvingteam->current_task.name,getpid(), manager_index);
+                printf("product %s in team %d with the manger %d\n", sharedMemory_shelvingteam->current_task.name, getpid(), manager_index);
 
 //                if (can_claim_task(&shared_products[i])) {
 //                    printf("in the if 2\n");
 //
-//                    shelvingteam->current_task = shared_products[i];
+//                    sharedMemory_shelvingteam->current_task = shared_products[i];
 //                    if(shared_products[i].quantity_in_storage < num_of_product_on_shelves - 2){
 //                        rollingCart = shared_products[i].quantity_in_storage;
 //                      }else{
 //                        rollingCart = num_of_product_on_shelves - 2;
 //                      }
-//                        printf("rollingCart %d product %s in team %d\n",rollingCart,shelvingteam->current_task.name,getpid());
+//                        printf("rollingCart %d product %s in team %d\n",rollingCart,sharedMemory_shelvingteam->current_task.name,getpid());
 //                    task_found = 1;
 //                    break;
 //                }
@@ -153,18 +153,18 @@ void mangerThreads(void *arg) {
 
         if (task_found) {
             // Signal employee threads about the new task
-            pthread_cond_broadcast(&shelvingteam->task_available);
+            pthread_cond_broadcast(&sharedMemory_shelvingteam->task_available);
         } else {
             // Wait for a new task or simulation end
-           // pthread_cond_wait(&shelvingteam->new_task_signal, &shelvingteam->task_mutex);
+           // pthread_cond_wait(&sharedMemory_shelvingteam->new_task_signal, &sharedMemory_shelvingteam->task_mutex);
         }
 
-   // pthread_mutex_unlock(&shelvingteam->task_mutex);
+   // pthread_mutex_unlock(&sharedMemory_shelvingteam->task_mutex);
 }
 
 
 
-void getSharedProducts(){
+void getSharedMemory(){
     /* Get the items shared memory to choose items from it */
     shm_id = shmget((int) getppid(), 0, 0);
     if (shm_id == -1) {
@@ -173,6 +173,17 @@ void getSharedProducts(){
     }
     shared_products = (Product *) shmat((int) shm_id, NULL, 0);
     if (shared_products == (void *) -1) {
+        perror("Error attaching shared memory in customer.c");
+        exit(EXIT_FAILURE);
+    }
+
+    shm_id_for_shelvingTeam = shmget((int) SHELVING_KEY, 0, 0);
+    if (shm_id_for_shelvingTeam == -1) {
+        perror("Error accessing shared memory in customer.c");
+        exit(EXIT_FAILURE);
+    }
+    sharedMemory_shelvingteam = (ShelvingTeam *) shmat((int) shm_id_for_shelvingTeam, NULL, 0);
+    if (sharedMemory_shelvingteam == (void *) -1) {
         perror("Error attaching shared memory in customer.c");
         exit(EXIT_FAILURE);
     }
@@ -187,9 +198,9 @@ void do_wrap_up2(){
 }
 
 void Free(){
-    free(shelvingteam->employee_threads);
-    free(shelvingteam);
-    pthread_mutex_destroy(&shelvingteam->task_mutex);
+    free(sharedMemory_shelvingteam->employee_threads);
+    free(sharedMemory_shelvingteam);
+    pthread_mutex_destroy(&sharedMemory_shelvingteam->task_mutex);
     for(int i = 0 ; i < MAX_SHELVES_EMPLOYEES ;i++){
         pthread_mutex_destroy(&mutex_employees[i]);
     }

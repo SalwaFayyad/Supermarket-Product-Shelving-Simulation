@@ -9,19 +9,18 @@ int arrival_rate_max ;
 int simulation_threshold ;
 
 void readArguments(char *file_name);
-void createSharedMemoryForProducts();
+void createSharedMemorys();
 void readProducts();
 void generateMultipleShelvingTeams();
-void createSharedMemoryForCustomers();
 void generateShelvingTeam();
 void createCustomers();
 void cleanup();
-
+void createSemaphoresForProducts();
 /* PUT THE SHELVING TEAM IN SHARED MEMORY*/
 
-int shm_id ,Products_count, nShelvingTeams = 5,customers_shm_id;
+int shm_id ,Products_count, nShelvingTeams = 5,customers_shm_id,shelving_shm_id,items_sem_id;
 Product *shared_Products;
-ShelvingTeam *shelvingteam;
+ShelvingTeam *sharedMemory_shelvingteam;
 Customer *shared_customers;
 
 int main(int argc, char *argv[]) {
@@ -33,9 +32,10 @@ int main(int argc, char *argv[]) {
     }
 
     readArguments(argv[1]);
-    createSharedMemoryForProducts();
+    createSharedMemorys();
+    createSemaphoresForProducts();
     readProducts();
-    createSharedMemoryForCustomers();
+
     for(int i = 0 ;i < 5 ;i++){
         createCustomers();
         sleep(5);
@@ -86,7 +86,7 @@ void readArguments(char *file_name) {
     fclose(file);
 }
 
-void createSharedMemoryForProducts() {
+void createSharedMemorys() {
     /* Create a shared memory segment */
     shm_id = shmget(getpid(), sizeof(Product) * MAX_SIZE, IPC_CREAT | 0666);
     if (shm_id == -1) {
@@ -100,7 +100,45 @@ void createSharedMemoryForProducts() {
         perror("Error attaching shared memory in the parent process");
         exit(EXIT_FAILURE);
     }
+
+    /* Create a shared memory segment */
+    customers_shm_id = shmget(CUSTOMERS_KEY, sizeof(Customer) * MAX_CUSTOMERS, IPC_CREAT | 0666);
+    if (customers_shm_id == -1) {
+        perror("Error creating customers shared memory in the parent process");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Attach the shared memory segment */
+    shared_customers = (Customer *) shmat(customers_shm_id, NULL, 0);
+    if (shared_customers == (void *) -1) {
+        perror("Error attaching customers shared memory in the parent process");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Set the initial customer id to -1 */
+    for (int i = 0; i < MAX_CUSTOMERS; ++i) {
+        shared_customers[i].id = -1;
+    }
+
+    shelving_shm_id = shmget(SHELVING_KEY, sizeof(ShelvingTeam) * nShelvingTeams, IPC_CREAT | 0666);
+    if (shelving_shm_id == -1) {
+        perror("Error creating shelving team shared memory in the parent process");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Attach the shared memory segment */
+    sharedMemory_shelvingteam = (ShelvingTeam *) shmat(shelving_shm_id, NULL, 0);
+    if (sharedMemory_shelvingteam == (void *) -1) {
+        perror("Error attaching shelving team shared memory in the parent process");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Set the initial shelving id to -1 */
+    for (int i = 0; i < nShelvingTeams; ++i) {
+        sharedMemory_shelvingteam[i].id = -1;
+    }
 }
+
 
 
 void readProducts() {
@@ -205,6 +243,20 @@ void generateCustomer() {
     exit(EXIT_FAILURE);
 }
 
+void createSemaphoresForProducts() {
+    /* Create semaphore for available items */
+    items_sem_id = semget(getpid(), num_of_product, IPC_CREAT | 0666);
+    if (items_sem_id == -1) {
+        perror("Error creating semaphores in the parent process");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Initialize each semaphore to its item */
+    for (int i = 0; i < num_of_product; ++i) {
+        semctl(items_sem_id, i, SETVAL, 1);
+    }
+}
+
 void createCustomers() {
     sleep(1);
     pid_t pid = fork(); /* Fork a new Customer Process */
@@ -221,26 +273,6 @@ void createCustomers() {
 }
 
 
-void createSharedMemoryForCustomers() {
-    /* Create a shared memory segment */
-    customers_shm_id = shmget(CUSTOMERS_KEY, sizeof(Customer) * MAX_CUSTOMERS, IPC_CREAT | 0666);
-    if (customers_shm_id == -1) {
-        perror("Error creating customers shared memory in the parent process");
-        exit(EXIT_FAILURE);
-    }
-
-    /* Attach the shared memory segment */
-    shared_customers = (Customer *) shmat(customers_shm_id, NULL, 0);
-    if (shared_customers == (void *) -1) {
-        perror("Error attaching customers shared memory in the parent process");
-        exit(EXIT_FAILURE);
-    }
-
-    /* Set the initial customer id to -1 */
-    for (int i = 0; i < MAX_CUSTOMERS; ++i) {
-        shared_customers[i].id = -1;
-    }
-}
 
 void cleanup() {
     shmdt(shared_customers);
