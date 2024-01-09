@@ -11,7 +11,7 @@ void  do_wrap_up(int i,char *name,int j);
 void do_wrap_up2();
 int can_claim_task(Product *product);
 
-int shm_id,num_of_product,product_threshold,simulation_threshold,num_of_product_on_shelves,rollingCart = 0,ind, manager_index, shm_id_for_shelvingTeam;
+int shm_id,num_of_products,product_threshold,simulation_threshold,num_of_product_on_shelves,rollingCart = 0,ind, manager_index, shm_id_for_shelvingTeam;
 atomic_flag task_claimed  ;
 
 pthread_mutex_t mutex_employees[MAX_SHELVES_EMPLOYEES];
@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
         printf("Usage: %s <num_of_product> <product_threshold> <simulation_threshold> <num_of_product_on_shelves>\n",argv[0]);
         exit(EXIT_FAILURE);
     }
-    num_of_product= atoi(argv[1]);
+    num_of_products= atoi(argv[1]);
     product_threshold = atoi(argv[2]);
     simulation_threshold =atoi(argv[3]);
     num_of_product_on_shelves = atoi(argv[4]);
@@ -129,7 +129,7 @@ int can_claim_task(Product *product) {
 void mangerThreads(void *arg) {
    // pthread_mutex_lock(&sharedMemory_shelvingteam->task_mutex);
         int task_found = 0;
-        for (int i = 0; i < num_of_product; i++) {
+        for (int i = 0; i < num_of_products; i++) {
        //     pthread_mutex_lock(&shared_products[i].task_mutex);
             if (shared_products[i].quantity_on_shelves <= product_threshold) {
                 printf("product %s in team %d with the manger %d\n", shared_shelvingTeams->current_task.name, getpid(), manager_index);

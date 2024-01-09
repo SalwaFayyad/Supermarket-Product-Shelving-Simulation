@@ -1,28 +1,31 @@
 #include "local.h"
 
-int num_of_product,customer_index, customer_shm_id,shm_id;
-Customer *customer ,*customers_shared_memory;
+int num_of_products, customer_index, customer_shm_id, shm_id;
+Customer *customer, *customers_shared_memory;
 Product *shared_products;
 
 void getSharedMemories();
+
 void createCustomer();
+
 void cleanup();
+
 void chooseItems();
 
 int main(int argc, char *argv[]) {
     printf("%d customer created\n", getpid());
     if (argc != 2) {
-        printf("Usage: %s <num_of_product>\n",argv[0]);
+        printf("Usage: %s <num_of_product>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
     /* Get variables from argv */
-    num_of_product = atoi(argv[1]);
+    num_of_products = atoi(argv[1]);
     getSharedMemories();
     createCustomer();
     chooseItems();
 
-    //cleanup();
+    cleanup();
 
     /* Exit the child process */
     exit(EXIT_SUCCESS);
@@ -78,39 +81,40 @@ void createCustomer() {
 }
 
 void chooseItems() {
-    float shop_time = 0.0;
+    float shop_time = 0.0f;
     int shopping_list_index = 0;
-    for (int i = 0; i < num_of_product; ++i) {
-        if(shop_time >= 0.5){
+    for (int i = 0; i < num_of_products; ++i) {
+
+        if (shop_time >= 0.5) {
             break;
         }
-      //  lock(getppid(), i , "customer.c");
 
-        pthread_mutex_lock(&shared_products[i].task_mutex);
-        if (shared_products[i].quantity_on_shelves != 0 && rand() % 3 == 0) {
-            srand(time(NULL) % getpid());
+        if (shared_products[i].quantity_on_shelves != 0 && rand() % 5 == 0) {
+//            srand(time(NULL) % getpid());
             int qnt;
-            if (shared_products[i].quantity_on_shelves < 7) {
-                qnt = generateRandomNumber(0, shared_products[i].quantity_on_shelves);
+            if (shared_products[i].quantity_on_shelves < 5) {
+                qnt = generateRandomNumber(1, shared_products[i].quantity_on_shelves);
             } else {
-                qnt = generateRandomNumber(0, 7);
+                qnt = generateRandomNumber(1, 5);
             }
+
+            lock(getppid(), i, "customer.c");
             shared_products[i].quantity_on_shelves -= qnt;
-           customer->shopping_list[shopping_list_index][1] = qnt;
-           customers_shared_memory[customer_index].shopping_list[shopping_list_index][1] = qnt;
+            unlock(getppid(), i, "customer.c");
+
+            customer->shopping_list[shopping_list_index][1] = qnt;
+            customers_shared_memory[customer_index].shopping_list[shopping_list_index][1] = qnt;
             printf("customer %d bought %d from %s \n", getpid(), qnt, shared_products[i].name);
-           customer->shopping_list[shopping_list_index][0] = i;
-           customers_shared_memory[customer_index].shopping_list[shopping_list_index][0] = i;
+            customer->shopping_list[shopping_list_index][0] = i;
+            customers_shared_memory[customer_index].shopping_list[shopping_list_index][0] = i;
 
-          // printf("chosen products %d for customer %d and the quantity is %d \n", customer->shopping_list[shopping_list_index][0],getpid(),customer->shopping_list[shopping_list_index][1]);
+             printf("chosen products %d for customer %d and the quantity is %d \n", customer->shopping_list[shopping_list_index][0],getpid(),customer->shopping_list[shopping_list_index][1]);
 
-            shop_time += 1 /60;
-            usleep(100000);
-           shopping_list_index++;
+            sleep(1);
+            shop_time += 1 / 60;
+            shopping_list_index++;
 
         }
-        pthread_mutex_unlock(&shared_products[i].task_mutex);
-        //unlock(getppid(), i , "customer.c");
     }
 }
 

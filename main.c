@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "local.h"
 
-int num_of_product;
+int num_of_products;
 int num_of_product_on_shelves;
 int product_threshold ;
 int arrival_rate_min ;
@@ -138,11 +138,11 @@ int main(int argc, char *argv[]) {
 //    glutDisplayFunc(display);
 //    glutMainLoop();
 
-
     for(int i = 0 ;i < 5 ;i++){
         generateCustomers();
         sleep(5);
     }
+
 
 
 //    for (int  i = 0 ;i < Products_count ;i++){
@@ -171,8 +171,8 @@ void readArguments(char *file_name) {
     while (fgets(buffer, sizeof(buffer), file)) {
         int p, ma, p_th, ar_min, ar_max, sim_th;
         /* Attempt to parse the buffer to extract the values */
-        if (sscanf(buffer, "num_of_product = %d", &p) == 1) {
-            num_of_product = p; /* If successful, update the values */
+        if (sscanf(buffer, "num_of_products = %d", &p) == 1) {
+            num_of_products = p; /* If successful, update the values */
         } else if (sscanf(buffer, "num_of_product_on_shelves = %d", &ma) == 1) {
             num_of_product_on_shelves = ma;
         } else if (sscanf(buffer, "product_threshold = %d", &p_th) == 1) {
@@ -243,14 +243,15 @@ void createSharedMemories() {
 
 void createSemaphoresForProducts() {
     /* Create semaphore for available items */
-    items_sem_id = semget(getpid(), num_of_product, IPC_CREAT | 0666);
+    printf("pid: %d, products n: %d", getpid(), num_of_products);
+    items_sem_id = semget(getpid(), num_of_products, IPC_CREAT | 0666);
     if (items_sem_id == -1) {
         perror("Error creating semaphores in the parent process");
         exit(EXIT_FAILURE);
     }
 
     /* Initialize each semaphore to its item */
-    for (int i = 0; i < num_of_product; ++i) {
+    for (int i = 0; i < num_of_products; ++i) {
         semctl(items_sem_id, i, SETVAL, 1);
     }
 }
@@ -292,20 +293,29 @@ void readProducts() {
                 shared_products[products_count].name[sizeof(shared_products[products_count].name) - 1] = '\0';
             } else {
                 /* Save the items quantity to the items shared memory */
-                shared_products[products_count].quantity_on_shelves = num_of_product_on_shelves;
-                shared_products[products_count].quantity_in_storage = atoi(token) - num_of_product_on_shelves;
+                int all_quantity = atoi(token);
+                if (all_quantity <= num_of_product_on_shelves) {
+                    shared_products[products_count].quantity_on_shelves = all_quantity;
+                    shared_products[products_count].quantity_in_storage = 0;
+                } else {
+                    shared_products[products_count].quantity_on_shelves = num_of_product_on_shelves;
+                    shared_products[products_count].quantity_in_storage = all_quantity - num_of_product_on_shelves;
+                }
             }
             shared_products[products_count].is_claimed = 0;
             token = strtok(NULL, ","); /* Move to the next token */
         }
         products_count++;
-        if (products_count >= num_of_product) { /* Break out of the loop if the maximum size is reached */
+        if (products_count >= num_of_products) { /* Break out of the loop if the maximum size is reached */
             break;
         }
     }
     /* Set the last_item_flag of the last item to 1 (indicating it's the last item) */
    // shared_Products[Products_count - 1].last_item_flag = 1;
     fclose(file); /* Close the file */
+//    for (int i = 0; i < products_count; ++i) {
+//        printf("name %s\n on shelves: %d\n on storage: %d\n", shared_products[i].name, shared_products[i].quantity_on_shelves, shared_products[i].quantity_in_storage);
+//    }
 }
 
 void generateShelvingTeams() {
@@ -315,7 +325,7 @@ void generateShelvingTeams() {
     char num_of_product_on_shelves_str[20];
 
     /* Convert integer values to strings */
-    sprintf(num_of_product_str, "%d", num_of_product);
+    sprintf(num_of_product_str, "%d", num_of_products);
     sprintf(product_threshold_str, "%d", product_threshold);
     sprintf(simulation_threshold_str, "%d", simulation_threshold);
     sprintf(num_of_product_on_shelves_str, "%d", num_of_product_on_shelves);
@@ -347,7 +357,7 @@ void generateCustomers() {
     char num_of_product_str[20];
 
     /* Convert integer values to strings */
-    sprintf(num_of_product_str, "%d", num_of_product);
+    sprintf(num_of_product_str, "%d", num_of_products);
 
     sleep(1);
     pid_t pid = fork(); /* Fork a new Customer Process */
@@ -374,7 +384,7 @@ void *productsCheck(void *arg) {
     int out_of_stock;
     while (1) {
         out_of_stock = 0;
-        for (int i = 0; i < num_of_product; ++i) {
+        for (int i = 0; i < num_of_products; ++i) {
 
             /* check if the quantity is zero */
             if(shared_products[i].quantity_in_storage == 0) {
