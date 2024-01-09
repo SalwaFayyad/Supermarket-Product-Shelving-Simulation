@@ -11,11 +11,10 @@ int simulation_threshold ;
 void readArguments(char *file_name);
 void createSharedMemorys();
 void readProducts();
-void generateMultipleShelvingTeams();
-void generateShelvingTeam();
-void createCustomers();
+void generateShelvingTeams();
 void cleanup();
 void createSemaphoresForProducts();
+void generateCustomers();
 /* PUT THE SHELVING TEAM IN SHARED MEMORY*/
 
 int shm_id ,Products_count, nShelvingTeams = 5,customers_shm_id,shelving_shm_id,items_sem_id;
@@ -103,6 +102,7 @@ int main(int argc, char *argv[]) {
     createSharedMemorys();
     createSemaphoresForProducts();
     readProducts();
+    //generateShelvingTeams();
 
 
 //    generateMultipleShelvingTeams();
@@ -132,7 +132,7 @@ int main(int argc, char *argv[]) {
 
 
     for(int i = 0 ;i < 5 ;i++){
-        createCustomers();
+        generateCustomers();
         sleep(5);
     }
 
@@ -281,13 +281,11 @@ void readProducts() {
 }
 
 
-void generateShelvingTeam(){
+void generateShelvingTeams() {
     char num_of_product_str[20];
     char product_threshold_str[20];
     char simulation_threshold_str[20];
     char num_of_product_on_shelves_str[20];
-
-
 
     /* Convert integer values to strings */
     sprintf(num_of_product_str, "%d", num_of_product);
@@ -296,15 +294,7 @@ void generateShelvingTeam(){
     sprintf(num_of_product_on_shelves_str, "%d", num_of_product_on_shelves);
 
 
-    /* Execute the customer process with command-line arguments */
-    execlp("./ShelvingTeam", "./ShelvingTeam",num_of_product_str,product_threshold_str,simulation_threshold_str,num_of_product_on_shelves_str, (char *) NULL);
 
-    /* If execlp fails */
-    perror("Error executing customer process");
-    exit(EXIT_FAILURE);
-}
-
-void generateMultipleShelvingTeams() {
     srand(time(NULL) % getpid());
     for (int i = 0; i < nShelvingTeams; i++) {
         pid_t shelving_pid = fork(); /* Fork a child process */
@@ -312,7 +302,12 @@ void generateMultipleShelvingTeams() {
             perror("Error forking cashier process"); /* Error while forking */
             exit(EXIT_FAILURE);
         } else if (shelving_pid == 0) {
-            generateShelvingTeam();
+            /* Execute the customer process with command-line arguments */
+            execlp("./ShelvingTeam", "./ShelvingTeam",num_of_product_str,product_threshold_str,simulation_threshold_str,num_of_product_on_shelves_str, (char *) NULL);
+
+            /* If execlp fails */
+            perror("Error executing customer process");
+            exit(EXIT_FAILURE);
 
         }
 //        } else {
@@ -322,19 +317,30 @@ void generateMultipleShelvingTeams() {
     }
 }
 
-void generateCustomer() {
-
+void generateCustomers() {
     char num_of_product_str[20];
 
     /* Convert integer values to strings */
     sprintf(num_of_product_str, "%d", num_of_product);
 
-    /* Execute the customer process with command-line arguments */
-    execlp("./customer", "./customer",num_of_product_str, (char *) NULL);
+    sleep(1);
+    pid_t pid = fork(); /* Fork a new Customer Process */
+    if (pid == -1) {
+        perror("Error forking process");
+        exit(EXIT_FAILURE);
+    } else if (pid == 0) {
 
-    /* If execlp fails */
-    perror("Error executing customer process");
-    exit(EXIT_FAILURE);
+        /* Execute the customer process with command-line arguments */
+        execlp("./customer", "./customer",num_of_product_str, (char *) NULL);
+
+        /* If execlp fails */
+        perror("Error executing customer process");
+        exit(EXIT_FAILURE);    }
+//    } else {
+//        /* Parent process */
+//        childProcesses[childCounter++] = pid;/* Add the child process ID to the array*/
+//    }
+
 }
 
 void createSemaphoresForProducts() {
@@ -351,20 +357,7 @@ void createSemaphoresForProducts() {
     }
 }
 
-void createCustomers() {
-    sleep(1);
-    pid_t pid = fork(); /* Fork a new Customer Process */
-    if (pid == -1) {
-        perror("Error forking process");
-        exit(EXIT_FAILURE);
-    } else if (pid == 0) {
-        generateCustomer(); /* Child process executes the generateCustomer function */
-    }
-//    } else {
-//        /* Parent process */
-//        childProcesses[childCounter++] = pid;/* Add the child process ID to the array*/
-//    }
-}
+
 
 
 
