@@ -84,8 +84,9 @@ void chooseItems() {
         if(shop_time >= 0.5){
             break;
         }
-        lock(getppid(), i , "customer.c");
+      //  lock(getppid(), i , "customer.c");
 
+        pthread_mutex_lock(&shared_products[i].task_mutex);
         if (shared_products[i].quantity_on_shelves != 0 && rand() % 3 == 0) {
             srand(time(NULL) % getpid());
             int qnt;
@@ -108,7 +109,8 @@ void chooseItems() {
            shopping_list_index++;
 
         }
-        unlock(getppid(), i , "customer.c");
+        pthread_mutex_unlock(&shared_products[i].task_mutex);
+        //unlock(getppid(), i , "customer.c");
     }
 }
 
