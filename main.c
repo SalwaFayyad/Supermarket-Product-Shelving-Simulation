@@ -23,6 +23,74 @@ Product *shared_Products;
 ShelvingTeam *sharedMemory_shelvingteam;
 Customer *shared_customers;
 
+
+void drawText(float x, float y, const char *text) {
+    glColor3f(0.0, 0.0, 0.0); // Set text color to black
+
+    // Set the position for the text (centered)
+    float textX = x - glutBitmapLength(GLUT_BITMAP_8_BY_13, (const unsigned char *)text) / 2;
+    float textY = y;
+
+    glRasterPos2f(textX, textY);
+
+    // Display each character of the string
+    for (int i = 0; text[i] != '\0'; i++) {
+        glutBitmapCharacter(GLUT_BITMAP_8_BY_13, text[i]);
+    }
+}
+
+void drawCustomers() {
+
+    // Assuming you have information about the number of customers and their positions
+    int numCustomers = 5; // Replace with the actual number of customers
+    float spacing = 70.0; // Adjust the spacing between customers
+
+    for (int i = 0; i < numCustomers; i++) {
+        float x = i * spacing + 100; // Adjust the starting position
+        float y = 500; // Adjust the y-coordinate
+        glColor3f(1.0, 1.0, 1.0);
+
+        // Draw a square for each customer
+        glBegin(GL_QUADS);
+        glVertex2f(x - 25, y - 25); // Top left
+        glVertex2f(x + 25, y - 25); // Top right
+        glVertex2f(x + 25, y + 25); // Bottom right
+        glVertex2f(x - 25, y + 25); // Bottom left
+        glEnd();
+
+        glColor3f(0.0f, 0.0f, 0.0f); // Black text
+        glRasterPos2f(x - 12.0f, y );
+
+        char CustomerId[6]; /* Convert ID to string */
+        sprintf(CustomerId, "%d", shared_customers->id);
+        for (int i = 0; CustomerId[i] != '\0'; ++i) {
+            /* Draw a character using the GLUT_BITMAP_HELVETICA_12 font at the current raster position */
+            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, CustomerId[i]);
+        }
+    }
+
+}
+
+
+void display() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Draw customers
+    drawCustomers();
+
+    glFlush();
+}
+
+void reshape(int width, int height) {
+    glViewport(0,0,(GLsizei)width,(GLsizei)height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0.0, 1500.0, -300.0, 600.0);
+    glMatrixMode(GL_MODELVIEW);
+}
+
+
+
 int main(int argc, char *argv[]) {
     if (argc != 2) {
         printf("Uh oh! Something went wrong.\n");
@@ -36,11 +104,37 @@ int main(int argc, char *argv[]) {
     createSemaphoresForProducts();
     readProducts();
 
+
+//    generateMultipleShelvingTeams();
+
+
+//    pid_t opengl = fork();
+//    if (opengl == -1) {
+//        perror("Error forking opengl process");
+//        exit(EXIT_FAILURE);
+//    } else if (opengl == 0) { // This is the child process
+//        execlp("./opengl", "./opengl", (char *)NULL);
+//        perror("Error executing opengl");
+//        exit(EXIT_FAILURE);
+//    } else {
+//        close(STDOUT_FILENO);
+//        close(STDERR_FILENO);
+//    }
+
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(1500, 1000);
+    glutInitWindowPosition(10, 10);
+    glutCreateWindow("Circle Example");
+    glutReshapeFunc(reshape);
+    glutDisplayFunc(display);
+    glutMainLoop();
+
+
     for(int i = 0 ;i < 5 ;i++){
         createCustomers();
         sleep(5);
     }
-    generateMultipleShelvingTeams();
 
 
 //    for (int  i = 0 ;i < Products_count ;i++){

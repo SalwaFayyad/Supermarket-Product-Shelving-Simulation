@@ -10,7 +10,7 @@ main: main.c
 customer: customer.c
 	$(CC) $(CFLAGS) -o customer customer.c
 
-cashier: ShelvingTeam.c
+ShelvingTeam: ShelvingTeam.c
 	$(CC) $(CFLAGS) -o ShelvingTeam ShelvingTeam.c
 
 clean:
