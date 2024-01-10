@@ -51,7 +51,7 @@ typedef struct {
 typedef struct {
     int id;
     pthread_t manager_thread;
-    pthread_t employee_threads[MAX_SHELVES_EMPLOYEES];
+    pthread_t employee_threads[MAX_SHELVES_EMPLOYEES-1];
     int current_product_index;
     int rolling_cart_qnt;
 } ShelvingTeam;
