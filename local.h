@@ -27,6 +27,7 @@
 
 #define MAX_SIZE  200
 #define MAX_SHELVES_EMPLOYEES  6
+#define SHELVING_TEAMS_NUMBER 5
 #define MAX_CUSTOMERS 500
 #define CUSTOMERS_KEY 1001
 #define SHELVING_KEY 5000
@@ -50,10 +51,9 @@ typedef struct {
 typedef struct {
     int id;
     pthread_t manager_thread;
-    pthread_t *employee_threads;
-    Product current_task;
-    pthread_mutex_t task_mutex;
-    pthread_cond_t task_available;
+    pthread_t employee_threads[MAX_SHELVES_EMPLOYEES];
+    int current_product_index;
+    int rolling_cart_qnt;
 } ShelvingTeam;
 
 typedef struct {

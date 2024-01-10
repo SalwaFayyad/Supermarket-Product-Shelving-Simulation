@@ -19,7 +19,7 @@ void cleanup();
 void generateCustomers();
 /* PUT THE SHELVING TEAM IN SHARED MEMORY*/
 
-int product_shm_id, products_count, nShelvingTeams = 5, customers_shm_id, shelving_shm_id, items_sem_id, message_queue_id;
+int product_shm_id, products_count, nShelvingTeams = SHELVING_TEAMS_NUMBER, customers_shm_id, shelving_shm_id, items_sem_id, message_queue_id;
 Product *shared_products;
 ShelvingTeam *shared_shelvingTeams;
 Customer *shared_customers;
@@ -151,7 +151,15 @@ int main(int argc, char *argv[]) {
 //        printf("quantity_in_storage %d\n",shared_Products[i].quantity_in_storage);
 //        printf("threshold %d\n",shared_Products[i].threshold);
 //    }
-    sleep(10);
+    while(1) {
+        sleep(5);
+        printf("-------------------------------------------------\n");
+        for (int i = 0; i < num_of_products; ++i) {
+            printf("%s shelve %d storage %d\n", shared_products[i].name, shared_products[i].quantity_on_shelves, shared_products[i].quantity_in_storage);
+        }
+        printf("-------------------------------------------------\n");
+    }
+    sleep(60);
     cleanup();
     return 0;
 }
@@ -243,7 +251,6 @@ void createSharedMemories() {
 
 void createSemaphoresForProducts() {
     /* Create semaphore for available items */
-    printf("pid: %d, products n: %d", getpid(), num_of_products);
     items_sem_id = semget(getpid(), num_of_products, IPC_CREAT | 0666);
     if (items_sem_id == -1) {
         perror("Error creating semaphores in the parent process");
@@ -386,18 +393,39 @@ void *productsCheck(void *arg) {
         out_of_stock = 0;
         for (int i = 0; i < num_of_products; ++i) {
 
-            /* check if the quantity is zero */
+            /* Check if the quantity is zero */
             if(shared_products[i].quantity_in_storage == 0) {
                 out_of_stock++;
                 continue;
             }
 
-            /* check if the quantity is below the threshold */
+            /* Check if the quantity is below the threshold */
             if (shared_products[i].quantity_on_shelves <= product_threshold) {
                 printf("Product %s reached or fell below the threshold! -> %d\n", shared_products[i].name, shared_products[i].quantity_on_shelves);
-                // send a message to a random team about this product
-            }
 
+                /** Send a message to a random team to refill the shelve **/
+
+                /* Choose the random team and make sure it is available and not doing anything*/
+                int random_team_index = generateRandomNumber(0, nShelvingTeams-1);
+                while (shared_shelvingTeams[random_team_index].current_product_index != -1) {
+                    random_team_index = generateRandomNumber(0, nShelvingTeams-1);
+                }
+                /* Creating the message: type 1 -> refill the shelve*/
+                Message msg;
+                msg.sender_id = getpid();
+                msg.receiver_id = shared_shelvingTeams[random_team_index].id;
+                msg.type = 1;
+                msg.product_index = i;
+
+                /* Send the message */
+                int mq_key = msg.receiver_id;
+                int msg_queue_id = msgget(mq_key, 0666 | IPC_CREAT);
+                if (msgsnd(msg_queue_id, &msg, sizeof(msg), 0) == -1) {
+                    perror("Error sending refill shelves message in main.c");
+                    exit(EXIT_FAILURE);
+                }
+                printf("\n\nmessage sent to %d\n\n", msg.receiver_id);
+            }
         }
 
         /* Sleep for a period before checking again */

@@ -6,7 +6,7 @@ Product *shared_products;
 
 void getSharedMemories();
 
-void createCustomer();
+void putCustomerOnSharedMemory();
 
 void cleanup();
 
@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
     /* Get variables from argv */
     num_of_products = atoi(argv[1]);
     getSharedMemories();
-    createCustomer();
+    putCustomerOnSharedMemory();
     chooseItems();
 
     cleanup();
@@ -59,7 +59,7 @@ void getSharedMemories() {
 }
 
 /* Create the customer and put it in the shared memory */
-void createCustomer() {
+void putCustomerOnSharedMemory() {
 
     /* Allocate memory for a new Customer structure */
     customer = malloc(sizeof(Customer));
@@ -90,7 +90,6 @@ void chooseItems() {
         }
 
         if (shared_products[i].quantity_on_shelves != 0 && rand() % 5 == 0) {
-//            srand(time(NULL) % getpid());
             int qnt;
             if (shared_products[i].quantity_on_shelves < 5) {
                 qnt = generateRandomNumber(1, shared_products[i].quantity_on_shelves);
@@ -104,14 +103,14 @@ void chooseItems() {
 
             customer->shopping_list[shopping_list_index][1] = qnt;
             customers_shared_memory[customer_index].shopping_list[shopping_list_index][1] = qnt;
-            printf("customer %d bought %d from %s \n", getpid(), qnt, shared_products[i].name);
+//            printf("customer %d bought %d from %s \n", getpid(), qnt, shared_products[i].name);
             customer->shopping_list[shopping_list_index][0] = i;
             customers_shared_memory[customer_index].shopping_list[shopping_list_index][0] = i;
 
-             printf("chosen products %d for customer %d and the quantity is %d \n", customer->shopping_list[shopping_list_index][0],getpid(),customer->shopping_list[shopping_list_index][1]);
+//             printf("chosen products %d for customer %d and the quantity is %d \n", customer->shopping_list[shopping_list_index][0],getpid(),customer->shopping_list[shopping_list_index][1]);
 
             sleep(1);
-            shop_time += 1 / 60;
+            shop_time += 1.0f / 60;
             shopping_list_index++;
 
         }
