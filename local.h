@@ -13,6 +13,7 @@
 #include <limits.h>
 #include <errno.h>
 #include <sys/msg.h>
+#include <signal.h>
 #include <sys/mman.h>
 #include <GL/gl.h>
 #include <GL/glut.h>
@@ -29,7 +30,7 @@
 #define MAX_SHELVES_EMPLOYEES  6
 #define SHELVING_TEAMS_NUMBER 5
 #define MAX_CUSTOMERS 500
-#define CUSTOMERS_KEY 1001
+#define CUSTOMERS_KEY 1002
 #define SHELVING_KEY 5000
 
 typedef struct{
@@ -57,9 +58,13 @@ typedef struct {
     pthread_t employee_threads[MAX_SHELVES_EMPLOYEES-1];
     int current_product_index;
     int rolling_cart_qnt;
-    float x_position;
-    float y_position;
+    int product_index;
+    float x_position_manager;
+    float y_position_manager;
+    float x_position_employee;
+    float y_position_employee;
     int manager_status;
+    int employee_status;
 } ShelvingTeam;
 
 typedef struct {

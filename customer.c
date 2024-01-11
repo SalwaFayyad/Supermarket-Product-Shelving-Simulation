@@ -24,8 +24,7 @@ int main(int argc, char *argv[]) {
     getSharedMemories();
     putCustomerOnSharedMemory();
     chooseItems();
-
-    cleanup();
+    //cleanup();
 
     /* Exit the child process */
     exit(EXIT_SUCCESS);
@@ -61,18 +60,13 @@ void getSharedMemories() {
 /* Create the customer and put it in the shared memory */
 void putCustomerOnSharedMemory() {
 
-    /* Allocate memory for a new Customer structure */
-    customer = malloc(sizeof(Customer));
-
-    /* Assign customer values */
-    customer->id = getpid();
 
     /* Put the customer in the first available space founded */
     for (customer_index = 0; customer_index < MAX_CUSTOMERS; ++customer_index) {
 
         /* if the customer id in this index is -1 => available space */
         if (customers_shared_memory[customer_index].id == -1) {
-            customers_shared_memory[customer_index] = *customer;
+            customers_shared_memory[customer_index].id = getpid();
             break;
         }
 
@@ -98,7 +92,9 @@ void chooseItems() {
             }
 
             lock(getppid(), i, "customer.c");
+            usleep(10000);
             shared_products[i].quantity_on_shelves -= qnt;
+            usleep(10000);
             unlock(getppid(), i, "customer.c");
 
             customer->shopping_list[shopping_list_index][1] = qnt;

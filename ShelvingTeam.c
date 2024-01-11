@@ -74,15 +74,16 @@ void teamForming() {
             shared_shelvingTeams[ind].current_product_index = -1; // means they are not working
             shared_shelvingTeams[ind].rolling_cart_qnt = 0;
             shared_shelvingTeams[ind].manager_status = -1;
+            shared_shelvingTeams[ind].employee_status = -1;
             break;
         }
 
     }
     /* Reaching the end of shared memory without finding available space */
-    if (ind == SHELVING_TEAMS_NUMBER) {
-        perror("Maximum size of shelving teams shared memory in ShelvingTeam.c");
-        exit(EXIT_FAILURE);
-    }
+//    if (ind == SHELVING_TEAMS_NUMBER) {
+//        perror("Maximum size of shelving teams shared memory in ShelvingTeam.c");
+//        exit(EXIT_FAILURE);
+//    }
 
     /* Create manager thread at the chosen random index */
     pthread_create(&shared_shelvingTeams[ind].manager_thread, NULL, (void *) managerThread, NULL);
@@ -114,6 +115,8 @@ void *managerThread() {
             shared_shelvingTeams[ind].current_product_index = product_index;
             /* get the necessary amount from the storage */
             shared_shelvingTeams[ind].manager_status = 1;
+            shared_shelvingTeams[ind].employee_status = 1;
+
             lock(getppid(), product_index, "ShelvingTeam.c");
             printf("********************************BEFORE\n");
             printf("******* (inside team %d) %s shelve %d storage %d\n",
@@ -123,23 +126,25 @@ void *managerThread() {
                    shared_products[product_index].quantity_in_storage
             );
 
-
+            sleep(2);
             pthread_mutex_lock(&task_mutex);
 
             if (shared_products[product_index].quantity_in_storage +
                 shared_products[product_index].quantity_on_shelves <= num_of_product_on_shelves) {
-                sleep(1);
-                shared_shelvingTeams[ind].manager_status = 2;
+
                 shared_shelvingTeams[ind].rolling_cart_qnt = shared_products[product_index].quantity_in_storage;
                 shared_products[product_index].quantity_in_storage = 0;
-                sleep(1);
+
+                shared_shelvingTeams[ind].manager_status = -1;
+
+                // sleep(1);
             } else {
-                sleep(1);
-                shared_shelvingTeams[ind].manager_status = 2;
+                shared_shelvingTeams[ind].manager_status = -1;
+
                 shared_shelvingTeams[ind].rolling_cart_qnt = num_of_product_on_shelves - shared_products[product_index].quantity_on_shelves;
                 shared_products[product_index].quantity_in_storage -=
                         num_of_product_on_shelves - shared_products[product_index].quantity_on_shelves;
-                sleep(1);
+                //sleep(1);
             }
             printf("team %d rolling cart: %d for product %s\n", getpid(), shared_shelvingTeams[ind].rolling_cart_qnt,
                    shared_products[product_index].name);
@@ -152,26 +157,27 @@ void *managerThread() {
             pthread_mutex_unlock(&task_mutex);
         }
     }
+    return NULL;
 }
 
 void *employeeThreads() {
     while (1) {
         // to avoid race condition between employees threads
+        sleep(2);
         pthread_mutex_lock(&task_mutex);
 
         while (shared_shelvingTeams[ind].rolling_cart_qnt == 0) {
             pthread_cond_wait(&task_available, &task_mutex);
         }
 
-        // usleep
-
         shared_shelvingTeams[ind].rolling_cart_qnt -= 1;
 
         int product_index = shared_shelvingTeams[ind].current_product_index;
         lock(getppid(), product_index, "ShelvingTeam.c");
 
+        usleep(100000);
         shared_products[product_index].quantity_on_shelves += 1;
-
+        usleep(100000);
 
         printf("********************************AFTER\n");
         printf("******* (inside team %d) %s shelve %d quantity %d storage %d\n",
@@ -184,6 +190,7 @@ void *employeeThreads() {
 
         if (shared_shelvingTeams[ind].rolling_cart_qnt == 0) {
             shared_shelvingTeams[ind].current_product_index = -1;
+            shared_shelvingTeams[ind].employee_status = -1;
         }
 
         unlock(getppid(), product_index, "ShelvingTeam.c");

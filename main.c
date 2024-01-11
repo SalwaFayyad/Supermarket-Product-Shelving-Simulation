@@ -1,5 +1,10 @@
-#include <stdio.h>
 #include "local.h"
+/*
+ * Sahar Fayyad 1190119
+ * Maysam Khatib 1190207
+ * Majd Abubaha 1190069
+ * Salwa Fayyad 1200430
+ * */
 
 int num_of_products;
 int num_of_product_on_shelves;
@@ -20,282 +25,48 @@ void readProducts();
 
 void generateShelvingTeams();
 
-void *productsCheck(void *arg);
+void *productsCheck();
+
+void *CustomersCheck();
 
 void cleanup();
 
 void generateCustomers();
 
-/* PUT THE SHELVING TEAM IN SHARED MEMORY*/
+void killChildProcesses();
 
-int product_shm_id, products_count, nShelvingTeams = SHELVING_TEAMS_NUMBER, customers_shm_id, shelving_shm_id, items_sem_id, message_queue_id;
+pid_t childProcesses[1000];
+int product_shm_id, products_count, nShelvingTeams = SHELVING_TEAMS_NUMBER, customers_shm_id, shelving_shm_id, items_sem_id, message_queue_id, childCounter = 0;
 Product *shared_products;
 ShelvingTeam *shared_shelvingTeams;
 Customer *shared_customers;
 
-pthread_t products_check_thread;
+pthread_t products_check_thread,Customer_check_thread;
 
-int product_index;
-int random_team_index;
-void drawCustomers(int i) {
+int random_team_index, numCustomers = 0;
+float space = 50.0f, squareSize = 55.0f, managerX, managerY[10];
 
-    // Assuming you have information about the number of customers and their positions
-   // int numCustomers = 5; // Replace with the actual number of customers
-    float spacing = 70.0; // Adjust the spacing between customers
-    float x = i * spacing + 100; // Adjust the starting position
-    float y = 950; // Adjust the y-coordinate
-    glColor3f(1.0, 1.0, 1.0);
+void drawCustomers();
 
-    // Draw a square for each customer
-    glBegin(GL_QUADS);
-    glVertex2f(x - 25, y - 25); // Top left
-    glVertex2f(x + 25, y - 25); // Top right
-    glVertex2f(x + 25, y + 25); // Bottom right
-    glVertex2f(x - 25, y + 25); // Bottom left
-    glEnd();
+void drawProductSquare(float x, float y, float size, int quantity, char name[20]);
 
-    glColor3f(0.0f, 0.0f, 0.0f); // Black text
-    glRasterPos2f(x - 12.0f, y);
+void drawProducts();
 
-    char CustomerId[6]; /* Convert ID to string */
-    sprintf(CustomerId, "%d", shared_customers[i].id);
-    for (int i = 0; CustomerId[i] != '\0'; ++i) {
-        /* Draw a character using the GLUT_BITMAP_HELVETICA_12 font at the current raster position */
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, CustomerId[i]);
-    }
+void drawManager(int x, int y, float colorR, float colorG, float colorB);
 
-}
+void drawEmployee(int x, int y, float colorR, float colorG, float colorB);
 
-void drawProductSquare(float x, float y, float size, int quantity, char name[20]) {
+void displayTeams();
 
-    /* Set drawing color based on quantity */
-    if (quantity <= 0) {
-        glColor3f(1.0f, 0.0f, 0.0f);
-    } else {
-        glColor3f(0.5f, 0.5f, 0.5f);
-    }
+void initializeManager();
 
-    /* Draw square to represent product*/
-    glBegin(GL_QUADS);
-    glVertex2f(x - size / 2, y - size / 2);
-    glVertex2f(x + size / 2, y - size / 2);
-    glVertex2f(x + size / 2, y + size / 2);
-    glVertex2f(x - size / 2, y + size / 2);
-    glEnd();
+void display();
 
-    glColor3f(0.0f, 0.0f, 0.0f);
+void timer(int);
 
-    glRasterPos2f(x - size / 2 + 10, y + size / 2 - 20);
-    /* Draw text with quantity and price */
-    char quantityStr[4]; /* Convert quantity to string */
-    sprintf(quantityStr, "%d", quantity);
-    for (int i = 0; quantityStr[i] != '\0'; ++i) {
-        /* Draw a character using the GLUT_BITMAP_HELVETICA_12 font at the current raster position */
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, quantityStr[i]);
-    }
-    glColor3f(0.0f, 0.0f, 0.0f);
+void reshape(int width, int height);
 
-    glRasterPos2f(x - size / 2 , y + size / 2 - 40);
-    /* Draw text with quantity and price */
-    char *nameStr = name; /* Convert quantity to string */
-    while (*nameStr) {
-        /* Draw a character using the GLUT_BITMAP_HELVETICA_12 font at the current raster position */
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *nameStr);
-        nameStr++;
-    }
-}
-
-float spacing = 50.0f;
-float squareSize = 55.0f;
-
-void drawProducts() {
-    int itemsPerRow = (int)floor((1500.0f - spacing) / (spacing * 2 + 50.0f)) - 4;  // Calculate items per row based on window width
-    int totalRows = (int)ceil((float)num_of_products / (float)itemsPerRow);
-    float yOffset = 1500.0f - (totalRows * 50.0f);  // Start from the bottom of the window, assuming a window height of 1000
-
-    glColor3f(1.0f, 0.0f, 0.0f);
-
-    glRasterPos2f(180 , yOffset - 250);
-    /* Draw text with quantity and price */
-    char *QuantityonShelvesStr = "Quantity on Shelves"; /* Convert quantity to string */
-    while (*QuantityonShelvesStr) {
-        /* Draw a character using the GLUT_BITMAP_HELVETICA_12 font at the current raster position */
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *QuantityonShelvesStr);
-        QuantityonShelvesStr++;
-    }
-
-    glColor3f(1.0f, 0.0f, 0.0f);
-
-    glRasterPos2f(1150 , yOffset - 250);
-    /* Draw text with quantity and price */
-    char *QuantityonStorgeStr = "Quantity on Storage"; /* Convert quantity to string */
-    while (*QuantityonStorgeStr) {
-        /* Draw a character using the GLUT_BITMAP_HELVETICA_12 font at the current raster position */
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *QuantityonStorgeStr);
-        QuantityonStorgeStr++;
-    }
-
-    for (int i = 0; i < totalRows; ++i) {
-        for (int j = 0; j < itemsPerRow && (i * itemsPerRow + j) < num_of_products; ++j) {
-            float x = j * (spacing * 2 + 50.0f);
-            x = ((j + 0.5f) * (squareSize + spacing)) - 1.0f + spacing;
-            yOffset = ((totalRows - 2 - i) * (squareSize + spacing)) - 1.0f + spacing;
-
-            shared_products[i * itemsPerRow + j].x_position_on_shelves = x;
-            shared_products[i * itemsPerRow + j].y_position_on_shelves = yOffset + 100;
-            shared_products[i * itemsPerRow + j].x_position_on_storage = x + 900;
-            shared_products[i * itemsPerRow + j].y_position_on_storage = yOffset + 100;
-//            printf("shared_products[i * itemsPerRow + j].x_position_on_storage %f\n",shared_products[i * itemsPerRow + j].x_position_on_storage);
-//            printf("shared_products[i * itemsPerRow + j].y_position_on_storage %f\n",shared_products[i * itemsPerRow + j].y_position_on_storage);
-
-            drawProductSquare(x, yOffset + 100, squareSize, shared_products[i * itemsPerRow + j].quantity_on_shelves, shared_products[i * itemsPerRow + j].name);
-            drawProductSquare(x + 900, yOffset + 100, squareSize, shared_products[i * itemsPerRow + j].quantity_in_storage, shared_products[i * itemsPerRow + j].name);
-
-        }
-    }
-}
-
-void drawManager(int x, int y, float color) {
-    glColor3f(0.0f, color, 0.0f);
-    glBegin(GL_TRIANGLES);
-    glVertex2f(x, y + 15); // Top vertex
-    glVertex2f(x - 15, y - 15); // Bottom left vertex
-    glVertex2f(x + 15, y - 15); // Bottom right vertex
-    glEnd();
-}
-
-void drawEmployee(int x, int y, float colorR, float colorG, float colorB) {
-    glColor3f(colorR, colorG, colorB); // Set the color based on parameters
-    glBegin(GL_TRIANGLE_FAN);
-    glVertex2f(x, y); // Center of the circle
-
-    int numSegments = 50;
-    float radius = 10.0f;
-
-    for (int i = 0; i <= numSegments; i++) {
-        float theta = (float)i / (float)numSegments * 2.0f * 3.1415926535898f;
-        float ex = x + radius * cos(theta);
-        float ey = y + radius * sin(theta);
-        glVertex2f(ex, ey);
-    }
-
-    glEnd();
-}
-
-void displayTeams(float managerX,float managerY) {
-    // glClear(GL_COLOR_BUFFER_BIT);
-
-    for (int j = 0; j < nShelvingTeams; j++) {
-        // Define different colors for each team
-        float teamColorR = (j % 2 == 0) ? 0.0f : 1.0f;      // Alternate red and white
-        float teamColorG = (j % 2 == 0) ? 0.0f : 1.0f;
-        float teamColorB = (j % 2 == 0) ? 1.0f : 1.0f;
-        // Draw employees in a circle around the manager
-        int numEmployees = MAX_SHELVES_EMPLOYEES - 1;
-//        float managerX = 700.0f;
-//        shared_shelvingTeams[j].x_position =  managerX;
-//        //  printf(" shared_shelvingTeams[j].x_position %f\n", shared_shelvingTeams[j].x_position);
-//        float managerY = 900 - (j * 200);
-//        shared_shelvingTeams[j].y_position =  managerY;
-//        // Draw the manager in the center
-
-        if(shared_shelvingTeams[random_team_index].manager_status == 1 && j == random_team_index){
-            drawManager(shared_shelvingTeams[random_team_index].x_position, shared_shelvingTeams[random_team_index].y_position,1.0f);
-            drawManager(managerX, managerY,0.0f);
-        }else if(shared_shelvingTeams[random_team_index].manager_status == 1 && j == random_team_index){
-            drawManager(shared_shelvingTeams[random_team_index].x_position, shared_shelvingTeams[random_team_index].y_position,0.0f);
-            drawManager(managerX, managerY,1.0f);
-
-        }
-        else {
-            drawManager(shared_shelvingTeams[j].x_position, shared_shelvingTeams[j].y_position, 1.0f);
-        }
-
-        float circleRadius = 50.0f;
-
-        for (int i = 0; i < numEmployees; ++i) {
-            // Calculate employee position using polar coordinates
-            float angle = i * (2.0f * 3.1415926535898f) / numEmployees;
-            float employeeX = managerX + circleRadius * cos(angle);
-            float employeeY = managerY + circleRadius * sin(angle);
-
-            // Draw the employee at the calculated position with the team's color
-            drawEmployee(employeeX, employeeY, teamColorR, teamColorG, teamColorB);
-        }
-    }
-    // glutSwapBuffers();
-}
-
-float current_time = 0.0f;
-int j = 0;
-
-void display() {
-    glClear(GL_COLOR_BUFFER_BIT);
-    drawProducts();
-    float managerX;
-    float managerY [10];
-    for(int j = 0 ; j < nShelvingTeams ;j++) {
-         managerX = 700.0f;
-        shared_shelvingTeams[j].x_position = managerX;
-        //  printf(" shared_shelvingTeams[j].x_position %f\n", shared_shelvingTeams[j].x_position);
-         managerY[j] = 900 - (j * 200);
-        shared_shelvingTeams[j].y_position = managerY[j];
-    }
-    while(1){
-        drawProducts();
-        for(int j = 0 ; j < nShelvingTeams ;j++) {
-            displayTeams(managerX,managerY[j]);
-        }
-        float delay = 5.0f;
-        for(int i = 0 ; i < j ;i++){
-            drawCustomers(i);
-        }
-        if(current_time >= delay && 7 != j){
-            generateCustomers();
-            current_time = 0.0f;
-            sleep(1);
-            j++;
-        }
-
-       // for(int i = 0 ; i < nShelvingTeams ;i++){
-            if(shared_shelvingTeams[random_team_index].manager_status == 1){
-             //   printf("inside the if \n");
-                shared_shelvingTeams[random_team_index].x_position = shared_products[product_index].x_position_on_storage;
-                shared_shelvingTeams[random_team_index].y_position = shared_products[product_index].y_position_on_storage - 50.0f;
-            }else if(shared_shelvingTeams[random_team_index].manager_status == 2){
-                shared_shelvingTeams[random_team_index].x_position = managerX;
-                shared_shelvingTeams[random_team_index].y_position = managerY[product_index];
-
-            }
-       // }
-
-        current_time += 1.0f / 60.0f;
-        glutSwapBuffers();
-        usleep(16667);
-    }
-}
-
-void timer(int) {
-    glutPostRedisplay();
-    glutTimerFunc(1000 / 60, timer, 0);
-//    for(int i = 0 ; i < nShelvingTeams ;i++){
-//        if(shared_shelvingTeams[i].manager_status == 1){
-//            printf("inside the timer to check\n");
-//            shared_shelvingTeams[i].x_position = shared_products[product_index].x_position_on_storage;
-//            printf("shared_shelvingTeams[i].x_position %f ,shared_products[product_index].x_position_on_storage %f\n",shared_shelvingTeams[i].x_position,shared_products[product_index].x_position_on_storage);
-//            shared_shelvingTeams[i].y_position = shared_products[product_index].y_position_on_storage - 2.0;
-//        }
-//    }
-}
-
-void reshape(int width, int height) {
-    glViewport(0, 0, (GLsizei)width, (GLsizei)height);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluOrtho2D(0.0, 1500.0, 0.0, 1000.0);
-    // Adjust orthographic projection based on window size
-    glMatrixMode(GL_MODELVIEW);
-}
+void startOpengl();
 
 
 int main(int argc, char *argv[]) {
@@ -312,65 +83,23 @@ int main(int argc, char *argv[]) {
     createMsgQueue();
     readProducts();
     generateShelvingTeams();
+    initializeManager();
+    glutInit(&argc, argv);
+
     /* Create the threshold check thread */
     if (pthread_create(&products_check_thread, NULL, productsCheck, NULL) != 0) {
         perror("Error creating products check thread");
         exit(EXIT_FAILURE);
     }
-
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-    glutInitWindowSize(1500, 1000);
-    glutInitWindowPosition(10, 10);
-    glutCreateWindow("Items Display");
-    glutReshapeFunc(reshape);
-    glutDisplayFunc(display);
-    glutTimerFunc(0, timer, 0);
-    glutMainLoop();
-
-//    generateShelvingTeams();
-//
-
-
-
-//    pid_t opengl = fork();
-//    if (opengl == -1) {
-//        perror("Error forking opengl process");
-//        exit(EXIT_FAILURE);
-//    } else if (opengl == 0) { // This is the child process
-//        execlp("./opengl", "./opengl", (char *)NULL);
-//        perror("Error executing opengl");
-//        exit(EXIT_FAILURE);
-//    } else {
-//        close(STDOUT_FILENO);
-//        close(STDERR_FILENO);
-//    }
-
-
-
-//    for (int i = 0; i < 5; i++) {
-//        generateCustomers();
-//        sleep(5);
-//    }
-
-
-
-//    for (int  i = 0 ;i < Products_count ;i++){
-//        printf("name %s\n",shared_Products[i].name);
-//        printf("quantity_on_shelves %d\n",shared_Products[i].quantity_on_shelves);
-//        printf("quantity_in_storage %d\n",shared_Products[i].quantity_in_storage);
-//        printf("threshold %d\n",shared_Products[i].threshold);
-//    }
-    while (1) {
-        sleep(5);
-        printf("-------------------------------------------------\n");
-        for (int i = 0; i < num_of_products; ++i) {
-            printf("%s shelve %d storage %d\n", shared_products[i].name, shared_products[i].quantity_on_shelves,
-                   shared_products[i].quantity_in_storage);
-        }
-        printf("-------------------------------------------------\n");
+    if (pthread_create(&Customer_check_thread, NULL, CustomersCheck, NULL) != 0) {
+        perror("Error creating products check thread");
+        exit(EXIT_FAILURE);
     }
+
+    startOpengl();
+
     sleep(60);
+    killChildProcesses();
     cleanup();
     return 0;
 }
@@ -529,11 +258,8 @@ void readProducts() {
         }
     }
     /* Set the last_item_flag of the last item to 1 (indicating it's the last item) */
-    // shared_Products[Products_count - 1].last_item_flag = 1;
     fclose(file); /* Close the file */
-//    for (int i = 0; i < products_count; ++i) {
-//        printf("name %s\n on shelves: %d\n on storage: %d\n", shared_products[i].name, shared_products[i].quantity_on_shelves, shared_products[i].quantity_in_storage);
-//    }
+
 }
 
 void generateShelvingTeams() {
@@ -563,11 +289,11 @@ void generateShelvingTeams() {
             perror("Error executing customer process");
             exit(EXIT_FAILURE);
 
+
+        } else {
+            /* Parent process */
+            childProcesses[childCounter++] = shelving_pid;
         }
-//        } else {
-//            /* Parent process */
-//            childProcesses[childCounter++] = cash_pid;
-//        }
     }
 }
 
@@ -578,29 +304,25 @@ void generateCustomers() {
     sprintf(num_of_product_str, "%d", num_of_products);
 
     /* Fork a new Customer Process */
-    sleep(1);
-    pid_t pid = fork();
-    if (pid == -1) {
-        perror("Error forking process");
-        exit(EXIT_FAILURE);
-    } else if (pid == 0) {
-
-        /* Execute the customer process with command-line arguments */
-        execlp("./customer", "./customer", num_of_product_str, (char *) NULL);
-
-        /* If execlp fails */
-        perror("Error executing customer process");
-        exit(EXIT_FAILURE);
-    }
-    else {
-        sleep(2);
-        /* Parent process */
-        // childProcesses[childCounter++] = pid;/* Add the child process ID to the array*/
-    }
+        sleep(1);
+        pid_t pid = fork();
+        if (pid == -1) {
+            perror("Error forking process");
+            exit(EXIT_FAILURE);
+        } else if (pid == 0) {
+            /* Execute the customer process with command-line arguments */
+            execlp("./customer", "./customer", num_of_product_str, (char *) NULL);
+            /* If execlp fails */
+            perror("Error executing customer process");
+            exit(EXIT_FAILURE);
+        } else {
+            /* Parent process */
+            childProcesses[childCounter++] = pid;/* Add the child process ID to the array*/
+        }
 
 }
 
-void *productsCheck(void *arg) {
+void *productsCheck() {
     int out_of_stock;
     while (1) {
         out_of_stock = 0;
@@ -630,7 +352,7 @@ void *productsCheck(void *arg) {
                 msg.receiver_id = shared_shelvingTeams[random_team_index].id;
                 msg.type = 1;
                 msg.product_index = i;
-                product_index = i;
+                shared_shelvingTeams[random_team_index].product_index = i;
                 /* Send the message */
                 int mq_key = msg.receiver_id;
                 int msg_queue_id = msgget(mq_key, 0666 | IPC_CREAT);
@@ -639,6 +361,7 @@ void *productsCheck(void *arg) {
                     exit(EXIT_FAILURE);
                 }
                 printf("\n\nmessage sent to %d\n\n", msg.receiver_id);
+                sleep(2);
             }
         }
 
@@ -652,6 +375,35 @@ void *productsCheck(void *arg) {
     return NULL;
 }
 
+void *CustomersCheck() {
+
+    float current_time = 0.0f;
+    numCustomers= generateRandomNumber(arrival_rate_min,arrival_rate_max);
+    while(1){
+        //   printf("inside the while in the main\n");
+        float delay = 4.0f;
+        if (numCustomers < MAX_CUSTOMERS && current_time >= delay) {
+            current_time = 0.0f;
+            int new_random = generateRandomNumber(arrival_rate_min, arrival_rate_max);
+            printf("numCustomers %d\n",numCustomers);
+            for(int i = 0 ; i < numCustomers ;i++) {
+                generateCustomers();
+            }
+            numCustomers += new_random; /* increase the number of created customers */
+        }
+        current_time += 1.0f / 60.0f;
+        usleep(16777);
+    }
+
+}
+
+/* Function to kill all active child processes */
+void killChildProcesses() {
+    for (int i = 0; i < childCounter; ++i) {
+        printf("Killing child process with PID: %d\n", childProcesses[i]);
+        kill(childProcesses[i], SIGTERM);
+    }
+}
 
 void cleanup() {
     /* Detach All shared memory and Semaphores created */
@@ -661,4 +413,237 @@ void cleanup() {
     semctl(items_sem_id, 0, IPC_RMID);
     msgctl(message_queue_id, IPC_RMID, (struct msqid_ds *) 0);
     printf("Main died\n");
+}
+
+
+/**********************************************OPENGL********************************************************/
+
+void drawCustomers() {
+
+    float spacing = 60.0; // Adjust the space between customers
+    for (int i = 0; i < numCustomers; i++) {
+        float x = i * spacing + 30.0; // Adjust the starting position
+        float y = 980; // Adjust the y-coordinate
+        glColor3f(0.6, 0.2, 1.0);
+
+        // Draw a square for each customer
+        glBegin(GL_QUADS);
+        glVertex2f(x - 20, y - 20); // Top left
+        glVertex2f(x + 20, y - 20); // Top right
+        glVertex2f(x + 20, y + 20); // Bottom right
+        glVertex2f(x - 20, y + 20); // Bottom left
+        glEnd();
+
+    }
+}
+
+void drawProductSquare(float x, float y, float size, int quantity, char name[20]) {
+
+    /* Set drawing color based on quantity */
+    if (quantity <= 0) {
+        glColor3f(1.0f, 0.0f, 0.0f);
+    } else {
+        glColor3f(0.5f, 0.5f, 0.5f);
+    }
+
+    /* Draw square to represent product*/
+    glBegin(GL_QUADS);
+    glVertex2f(x - size / 2, y - size / 2);
+    glVertex2f(x + size / 2, y - size / 2);
+    glVertex2f(x + size / 2, y + size / 2);
+    glVertex2f(x - size / 2, y + size / 2);
+    glEnd();
+
+    glColor3f(0.0f, 0.0f, 0.0f);
+
+    glRasterPos2f(x - size / 2 + 10, y + size / 2 - 20);
+    /* Draw text with quantity and price */
+    char quantityStr[4]; /* Convert quantity to string */
+    sprintf(quantityStr, "%d", quantity);
+    for (int i = 0; quantityStr[i] != '\0'; ++i) {
+        /* Draw a character using the GLUT_BITMAP_HELVETICA_12 font at the current raster position */
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, quantityStr[i]);
+    }
+    glColor3f(0.0f, 0.0f, 0.0f);
+
+    glRasterPos2f(x - size / 2, y + size / 2 - 40);
+    /* Draw text with quantity and price */
+    char *nameStr = name; /* Convert quantity to string */
+    while (*nameStr) {
+        /* Draw a character using the GLUT_BITMAP_HELVETICA_12 font at the current raster position */
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *nameStr);
+        nameStr++;
+    }
+}
+
+void drawProducts() {
+    int itemsPerRow = (int) floor((1500.0f - space) / (space * 2 + 50.0f)) -
+                      4;  // Calculate items per row based on window width
+    int totalRows = (int) ceil((float) num_of_products / (float) itemsPerRow);
+    float yOffset =
+            1500.0f - (totalRows * 50.0f);  // Start from the bottom of the window, assuming a window height of 1000
+
+    glColor3f(1.0f, 0.0f, 0.0f);
+
+    glRasterPos2f(180, yOffset - 250);
+    /* Draw text with quantity and price */
+    char *QuantityonShelvesStr = "Quantity on Shelves"; /* Convert quantity to string */
+    while (*QuantityonShelvesStr) {
+        /* Draw a character using the GLUT_BITMAP_HELVETICA_12 font at the current raster position */
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *QuantityonShelvesStr);
+        QuantityonShelvesStr++;
+    }
+
+    glColor3f(1.0f, 0.0f, 0.0f);
+
+    glRasterPos2f(1150, yOffset - 250);
+    /* Draw text with quantity and price */
+    char *QuantityonStorgeStr = "Quantity on Storage"; /* Convert quantity to string */
+    while (*QuantityonStorgeStr) {
+        /* Draw a character using the GLUT_BITMAP_HELVETICA_12 font at the current raster position */
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *QuantityonStorgeStr);
+        QuantityonStorgeStr++;
+    }
+
+    for (int i = 0; i < totalRows; ++i) {
+        for (int j = 0; j < itemsPerRow && (i * itemsPerRow + j) < num_of_products; ++j) {
+            float x = j * (space * 2 + 50.0f);
+            x = ((j + 0.5f) * (squareSize + space)) - 1.0f + space;
+            yOffset = ((totalRows - 2 - i) * (squareSize + space)) - 1.0f + space;
+
+            shared_products[i * itemsPerRow + j].x_position_on_shelves = x;
+            shared_products[i * itemsPerRow + j].y_position_on_shelves = yOffset + 100;
+            shared_products[i * itemsPerRow + j].x_position_on_storage = x + 900;
+            shared_products[i * itemsPerRow + j].y_position_on_storage = yOffset + 100;
+            drawProductSquare(x, yOffset + 100, squareSize, shared_products[i * itemsPerRow + j].quantity_on_shelves,
+                              shared_products[i * itemsPerRow + j].name);
+            drawProductSquare(x + 900, yOffset + 100, squareSize,
+                              shared_products[i * itemsPerRow + j].quantity_in_storage,
+                              shared_products[i * itemsPerRow + j].name);
+
+        }
+    }
+}
+
+void drawManager(int x, int y, float colorR, float colorG, float colorB) {
+    glColor3f(colorR, colorG, colorB);
+    glBegin(GL_TRIANGLES);
+    glVertex2f(x, y + 15); // Top vertex
+    glVertex2f(x - 15, y - 15); // Bottom left vertex
+    glVertex2f(x + 15, y - 15); // Bottom right vertex
+    glEnd();
+}
+
+void drawEmployee(int x, int y, float colorR, float colorG, float colorB) {
+    glColor3f(colorR, colorG, colorB); // Set the color based on parameters
+    glBegin(GL_TRIANGLE_FAN);
+    glVertex2f(x, y); // Center of the circle
+
+    int numSegments = 50;
+    float radius = 10.0f;
+
+    for (int i = 0; i <= numSegments; i++) {
+        float theta = (float) i / (float) numSegments * 2.0f * 3.1415926535898f;
+        float ex = x + radius * cos(theta);
+        float ey = y + radius * sin(theta);
+        glVertex2f(ex, ey);
+    }
+
+    glEnd();
+}
+
+
+void displayTeams() {
+    // glClear(GL_COLOR_BUFFER_BIT);
+
+    for (int j = 0; j < nShelvingTeams; j++) {
+        // Define different colors for each team
+        float teamColorR = (j ) % nShelvingTeams;
+        float teamColorG =  (j + 2) % nShelvingTeams;
+        float teamColorB = ( j + 3) % nShelvingTeams;
+        if(nShelvingTeams - 1 == j){
+            teamColorR = 0;
+            teamColorG =  0;
+            teamColorB = 1;
+        }
+
+        int numEmployees = MAX_SHELVES_EMPLOYEES - 1;
+
+        drawManager(shared_shelvingTeams[j].x_position_manager, shared_shelvingTeams[j].y_position_manager, teamColorR, teamColorG, teamColorB);
+        float circleRadius = 50.0f;
+        for (int i = 0; i < numEmployees; ++i) {
+            // Calculate employee position using polar coordinates
+            float angle = i * (2.0f * 3.1415926535898f) / numEmployees;
+            float employeeX = shared_shelvingTeams[j].x_position_employee + circleRadius * cos(angle);
+            float employeeY = shared_shelvingTeams[j].y_position_employee + circleRadius * sin(angle);
+
+            // Draw the employee at the calculated position with the team's color
+            drawEmployee(employeeX, employeeY, teamColorR, teamColorG, teamColorB);
+        }
+    }
+}
+
+void initializeManager(){
+
+    for (int j = 0; j < nShelvingTeams; j++) {
+        managerX = 700.0f;
+        shared_shelvingTeams[j].x_position_manager = managerX;
+        shared_shelvingTeams[j].x_position_employee = managerX;
+        managerY[j] = 900 - (j * 200);
+        shared_shelvingTeams[j].y_position_manager = managerY[j];
+        shared_shelvingTeams[j].y_position_employee = managerY[j];
+    }
+}
+
+void display() {
+
+    glClear(GL_COLOR_BUFFER_BIT);
+    drawProducts();
+    displayTeams();
+    drawCustomers();
+    glutSwapBuffers();
+
+}
+
+void timer(int) {
+    glutPostRedisplay();
+    if(shared_shelvingTeams[random_team_index].manager_status == 1){
+        shared_shelvingTeams[random_team_index].x_position_manager = shared_products[shared_shelvingTeams[random_team_index].product_index].x_position_on_storage;
+        shared_shelvingTeams[random_team_index].y_position_manager = shared_products[shared_shelvingTeams[random_team_index].product_index].y_position_on_storage - 2.0;
+    }
+
+    else{
+        shared_shelvingTeams[random_team_index].x_position_manager = managerX;
+        shared_shelvingTeams[random_team_index].y_position_manager = managerY[random_team_index];
+    }
+    if(shared_shelvingTeams[random_team_index].employee_status == 1){
+        shared_shelvingTeams[random_team_index].x_position_employee = shared_products[shared_shelvingTeams[random_team_index].product_index].x_position_on_shelves;
+        shared_shelvingTeams[random_team_index].y_position_employee = shared_products[shared_shelvingTeams[random_team_index].product_index].y_position_on_shelves - 2.0;
+
+    }else{
+        shared_shelvingTeams[random_team_index].x_position_employee = managerX;
+        shared_shelvingTeams[random_team_index].y_position_employee = managerY[random_team_index];
+    }
+    glutTimerFunc(1000 / 60, timer, 0);
+
+}
+
+void reshape(int width, int height) {
+    glViewport(0, 0, (GLsizei) width, (GLsizei) height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0.0, 1500.0, 0.0, 1000.0);
+    // Adjust orthographic projection based on window size
+    glMatrixMode(GL_MODELVIEW);
+}
+
+void startOpengl() {
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(1500, 1000);
+    glutInitWindowPosition(10, 10);
+    glutCreateWindow("Items Display");
+    glutReshapeFunc(reshape);
+    glutDisplayFunc(display);
+    glutTimerFunc(0, timer, 0);
+    glutMainLoop();
 }

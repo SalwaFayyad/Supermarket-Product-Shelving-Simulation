@@ -2,6 +2,6 @@ num_of_products = 40
 num_of_product_on_shelves = 10
 product_threshold = 2
 arrival_rate_min = 1
-arrival_rate_max = 3
+arrival_rate_max = 2
 simulation_threshold = 2000
 
