@@ -73,6 +73,7 @@ void teamForming() {
             shared_shelvingTeams[ind].id = getpid();
             shared_shelvingTeams[ind].current_product_index = -1; // means they are not working
             shared_shelvingTeams[ind].rolling_cart_qnt = 0;
+            shared_shelvingTeams[ind].manager_status = -1;
             break;
         }
 
@@ -112,7 +113,7 @@ void *managerThread() {
             int product_index = msg.product_index;
             shared_shelvingTeams[ind].current_product_index = product_index;
             /* get the necessary amount from the storage */
-
+            shared_shelvingTeams[ind].manager_status = 1;
             lock(getppid(), product_index, "ShelvingTeam.c");
             printf("********************************BEFORE\n");
             printf("******* (inside team %d) %s shelve %d storage %d\n",
@@ -122,17 +123,23 @@ void *managerThread() {
                    shared_products[product_index].quantity_in_storage
             );
 
+
             pthread_mutex_lock(&task_mutex);
 
             if (shared_products[product_index].quantity_in_storage +
                 shared_products[product_index].quantity_on_shelves <= num_of_product_on_shelves) {
-
+                sleep(1);
+                shared_shelvingTeams[ind].manager_status = 2;
                 shared_shelvingTeams[ind].rolling_cart_qnt = shared_products[product_index].quantity_in_storage;
                 shared_products[product_index].quantity_in_storage = 0;
+                sleep(1);
             } else {
+                sleep(1);
+                shared_shelvingTeams[ind].manager_status = 2;
                 shared_shelvingTeams[ind].rolling_cart_qnt = num_of_product_on_shelves - shared_products[product_index].quantity_on_shelves;
                 shared_products[product_index].quantity_in_storage -=
                         num_of_product_on_shelves - shared_products[product_index].quantity_on_shelves;
+                sleep(1);
             }
             printf("team %d rolling cart: %d for product %s\n", getpid(), shared_shelvingTeams[ind].rolling_cart_qnt,
                    shared_products[product_index].name);

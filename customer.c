@@ -103,11 +103,11 @@ void chooseItems() {
 
             customer->shopping_list[shopping_list_index][1] = qnt;
             customers_shared_memory[customer_index].shopping_list[shopping_list_index][1] = qnt;
-//            printf("customer %d bought %d from %s \n", getpid(), qnt, shared_products[i].name);
+          printf("customer %d bought %d from %s \n", getpid(), qnt, shared_products[i].name);
             customer->shopping_list[shopping_list_index][0] = i;
             customers_shared_memory[customer_index].shopping_list[shopping_list_index][0] = i;
 
-//             printf("chosen products %d for customer %d and the quantity is %d \n", customer->shopping_list[shopping_list_index][0],getpid(),customer->shopping_list[shopping_list_index][1]);
+            printf("chosen products %d for customer %d and the quantity is %d \n", customer->shopping_list[shopping_list_index][0],getpid(),customer->shopping_list[shopping_list_index][1]);
 
             sleep(1);
             shop_time += 1.0f / 60;

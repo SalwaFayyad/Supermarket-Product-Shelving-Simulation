@@ -15,7 +15,7 @@ Onion, 18
 Fish, 28
 Watermelon, 12
 Cucumber, 12
-Yogurt, 10
+Yogurt, 18
 Jam, 15
 Chocolate, 12
 Cereal, 14
@@ -28,7 +28,7 @@ Chips, 15
 Lemon, 30
 Grapes, 25
 Pineapple, 15
-Olive, 10
+Olive, 30
 Honey, 12
 Tofu, 50
 Pepper, 17
@@ -38,34 +38,3 @@ Almonds, 18
 Peach, 15
 Soup, 12
 Shrimp, 20
-Cherry, 20
-Sausage, 16
-Hummus, 19
-Mustard, 15
-Bacon, 14
-Cabbage, 10
-Pine Nuts, 18
-Mango, 12
-Broccoli, 10
-Asparagus, 18
-Cashews, 18
-Papaya, 15
-Peach, 20
-Cranberry, 17
-Zucchini, 12
-Turmeric, 28
-Ginger, 25
-Kiwi, 11
-Cantaloupe,
-Artichoke, 16
-Pomegranate, 12
-Radish, 15
-Pistachio, 18
-Tuna, 15
-Blueberry, 20
-Hazelnut, 21
-Caviar, 50
-Turnip, 12
-Raspberry, 15
-Chestnut, 18
-Jicama, 15
