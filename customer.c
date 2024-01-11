@@ -92,9 +92,7 @@ void chooseItems() {
             }
 
             lock(getppid(), i, "customer.c");
-            usleep(10000);
             shared_products[i].quantity_on_shelves -= qnt;
-            usleep(10000);
             unlock(getppid(), i, "customer.c");
 
             customer->shopping_list[shopping_list_index][1] = qnt;

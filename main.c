@@ -386,7 +386,7 @@ void *CustomersCheck() {
             current_time = 0.0f;
             int new_random = generateRandomNumber(arrival_rate_min, arrival_rate_max);
             printf("numCustomers %d\n",numCustomers);
-            for(int i = 0 ; i < numCustomers ;i++) {
+            for(int i = 0 ; i < new_random ;i++) {
                 generateCustomers();
             }
             numCustomers += new_random; /* increase the number of created customers */

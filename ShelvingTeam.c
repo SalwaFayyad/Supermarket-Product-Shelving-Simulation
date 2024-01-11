@@ -115,7 +115,6 @@ void *managerThread() {
             shared_shelvingTeams[ind].current_product_index = product_index;
             /* get the necessary amount from the storage */
             shared_shelvingTeams[ind].manager_status = 1;
-            shared_shelvingTeams[ind].employee_status = 1;
 
             lock(getppid(), product_index, "ShelvingTeam.c");
             printf("********************************BEFORE\n");
@@ -134,13 +133,13 @@ void *managerThread() {
 
                 shared_shelvingTeams[ind].rolling_cart_qnt = shared_products[product_index].quantity_in_storage;
                 shared_products[product_index].quantity_in_storage = 0;
-
+                shared_shelvingTeams[ind].employee_status = 1;
                 shared_shelvingTeams[ind].manager_status = -1;
 
                 // sleep(1);
             } else {
                 shared_shelvingTeams[ind].manager_status = -1;
-
+                shared_shelvingTeams[ind].employee_status = 1;
                 shared_shelvingTeams[ind].rolling_cart_qnt = num_of_product_on_shelves - shared_products[product_index].quantity_on_shelves;
                 shared_products[product_index].quantity_in_storage -=
                         num_of_product_on_shelves - shared_products[product_index].quantity_on_shelves;
