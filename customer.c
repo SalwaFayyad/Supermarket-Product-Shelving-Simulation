@@ -82,17 +82,16 @@ void chooseItems() {
         if (shop_time >= 0.5) {
             break;
         }
-
-        if (shared_products[i].quantity_on_shelves != 0 && rand() % 5 == 0) {
+        if (shared_products[i].quantity_on_shelves != 0 && rand() % 3 == 0) {
             int qnt;
             if (shared_products[i].quantity_on_shelves < 5) {
                 qnt = generateRandomNumber(1, shared_products[i].quantity_on_shelves);
             } else {
                 qnt = generateRandomNumber(1, 5);
             }
-
             lock(getppid(), i, "customer.c");
             shared_products[i].quantity_on_shelves -= qnt;
+            printf("customer %d took %d from shelve %s \n", getpid(), qnt, shared_products[i].name);
             unlock(getppid(), i, "customer.c");
 
             customer->shopping_list[shopping_list_index][1] = qnt;
@@ -106,7 +105,6 @@ void chooseItems() {
             sleep(1);
             shop_time += 1.0f / 60;
             shopping_list_index++;
-
         }
     }
 }
