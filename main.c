@@ -749,11 +749,12 @@ void timer(int) {
     } else {
         simulation_end_statement = " STORAGE FINISH ";
     }
-    for (int i = 1; i <= simulation_threshold * 60 ; i++) {
-        if (elapsed_time == i * 60) {
+    for (int i = 1; i <= simulation_threshold  * 60 ; i++) {
+        if (elapsed_time == i) {
             minutes += 1;
         }
     }
+    minutes = elapsed_time / 60;
 
     /* check the simulation threshold or number of products in storage to finish the program */
     if (elapsed_time >= (simulation_threshold * 60.0) || storage_finished == 1) {
