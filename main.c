@@ -504,10 +504,10 @@ void drawTime() {
     glColor3f(0, 0, 0); /* Set the color for the square */
     glBegin(GL_QUADS);
     /* Define the vertices of the square */
-    glVertex2f(1400, 980); /* Top-left corner */
+    glVertex2f(1400, 960); /* Top-left corner */
     glVertex2f(1400, 930); /* Bottom-left corner */
     glVertex2f(1450, 930); /* Bottom-right corner */
-    glVertex2f(1450, 980); /* Top-right corner */
+    glVertex2f(1450, 960); /* Top-right corner */
 
     glEnd(); /* End drawing the square */
     glColor3f(0.1, 0.5, 0.7); /* Set the color for the square */
