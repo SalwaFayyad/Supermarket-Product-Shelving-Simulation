@@ -2,7 +2,7 @@ CC = gcc -g
 CFLAGS = -Wall -Wextra
 LIBS = -lGL -lGLU -lglut -lm
 
-all: main customer ShelvingTeam
+all: main customer shelving_team
 
 main: main.c
 	$(CC) $(CFLAGS) -o main main.c $(LIBS)
@@ -10,8 +10,8 @@ main: main.c
 customer: customer.c
 	$(CC) $(CFLAGS) -o customer customer.c
 
-ShelvingTeam: ShelvingTeam.c
-	$(CC) $(CFLAGS) -o ShelvingTeam ShelvingTeam.c
+ShelvingTeam: shelving_team.c
+	$(CC) $(CFLAGS) -o shelving_team shelving_team.c
 
 clean:
-	rm -f main customer ShelvingTeam
+	rm -f main customer shelving_team

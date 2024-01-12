@@ -230,7 +230,7 @@ void createMsgQueue() {
 /* function to real products file and saved it in the shared memory for products */
 void readProducts() {
     /* Read from the products file */
-    FILE *file = fopen("Products.txt", "r");
+    FILE *file = fopen("products.txt", "r");
     if (file == NULL) {
         perror("Error opening items_list.txt file");
         exit(EXIT_FAILURE);
@@ -301,7 +301,7 @@ void generateShelvingTeams() {
         } else if (shelving_pid == 0) {
 
             /* Execute the ShelvingTeam process with command-line arguments */
-            execlp("./ShelvingTeam", "./ShelvingTeam", num_of_product_str, product_threshold_str,
+            execlp("./shelving_team", "./shelving_team", num_of_product_str, product_threshold_str,
                    simulation_threshold_str, num_of_product_on_shelves_str, (char *) NULL);
 
             /* If execlp fails */
@@ -604,7 +604,6 @@ void drawEmployee(int x, int y, float colorR, float colorG, float colorB) {
 
 
 void displayTeams() {
-    // glClear(GL_COLOR_BUFFER_BIT);
 
     for (int j = 0; j < nShelvingTeams; j++) {
         // Define different colors for each team
