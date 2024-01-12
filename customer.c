@@ -113,7 +113,7 @@ void chooseItems() {
 
 /* remove the customer from the shared memory and detach shared memories */
 void cleanup() {
-    //customers_shared_memory[customer_index].id = -1;
+    customers_shared_memory[customer_index].id = -1;
     shmdt(customers_shared_memory);
     shmdt(shared_products);
 }

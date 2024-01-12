@@ -6,6 +6,8 @@
  * Salwa Fayyad 1200430
  * */
 
+/************************************** FUNCTIONS & GLOBAL VARIABLES **********************************************/
+
 int num_of_products;
 int num_of_product_on_shelves;
 int product_threshold;
@@ -35,15 +37,21 @@ void generateCustomers();
 
 void killChildProcesses();
 
-pid_t childProcesses[1000];
-int product_shm_id, products_count, nShelvingTeams = SHELVING_TEAMS_NUMBER, customers_shm_id, shelving_shm_id, items_sem_id, message_queue_id, childCounter = 0;
 Product *shared_products;
 ShelvingTeam *shared_shelvingTeams;
 Customer *shared_customers;
 
 pthread_t products_check_thread,Customer_check_thread;
 
-int random_team_index, numCustomers = 0, minutes = 0;
+pid_t childProcesses[1000];
+
+int product_shm_id, products_count, nShelvingTeams = SHELVING_TEAMS_NUMBER, customers_shm_id,
+    shelving_shm_id, items_sem_id, message_queue_id, childCounter = 0, random_team_index;
+
+
+/*********************************** FUNCTIONS & GLOBAL VARIABLES of opengl****************************************/
+
+int numCustomers = 0, minutes = 0;
 float space = 50.0f, squareSize = 55.0f, managerX, managerY[10];
 double seconds = 0;
 
@@ -70,6 +78,8 @@ void reshape(int width, int height);
 void startOpengl();
 
 void terminateProgram();
+
+/*****************************************************************************************************************/
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -99,11 +109,12 @@ int main(int argc, char *argv[]) {
     }
 
     startOpengl();
-    killChildProcesses();
-    cleanup();
+//    killChildProcesses();
+//    cleanup();
     return 0;
 }
 
+/* function to read arguments file */
 void readArguments(char *file_name) {
 
     /* Read from the arguments file */
@@ -136,29 +147,30 @@ void readArguments(char *file_name) {
     fclose(file);
 }
 
+/* function to create shared memories for products, customers, and teams */
 void createSharedMemories() {
-    /* Create a shared memory segment */
+    /* Create a shared memory segment for products */
     product_shm_id = shmget(getpid(), sizeof(Product) * MAX_SIZE, IPC_CREAT | 0666);
     if (product_shm_id == -1) {
         perror("Error creating shared memory in the parent process");
         exit(EXIT_FAILURE);
     }
 
-    /* Attach the shared memory segment */
+    /* Attach the shared memory segment for products */
     shared_products = (Product *) shmat(product_shm_id, NULL, 0);
     if (shared_products == (void *) -1) {
         perror("Error attaching shared memory in the parent process");
         exit(EXIT_FAILURE);
     }
 
-    /* Create a shared memory segment */
+    /* Create a shared memory segment for customers */
     customers_shm_id = shmget(CUSTOMERS_KEY, sizeof(Customer) * MAX_CUSTOMERS, IPC_CREAT | 0666);
     if (customers_shm_id == -1) {
         perror("Error creating customers shared memory in the parent process");
         exit(EXIT_FAILURE);
     }
 
-    /* Attach the shared memory segment */
+    /* Attach the shared memory segment for customers */
     shared_customers = (Customer *) shmat(customers_shm_id, NULL, 0);
     if (shared_customers == (void *) -1) {
         perror("Error attaching customers shared memory in the parent process");
@@ -170,13 +182,14 @@ void createSharedMemories() {
         shared_customers[i].id = -1;
     }
 
+    /* Create a shared memory segment for teams */
     shelving_shm_id = shmget(SHELVING_KEY, sizeof(ShelvingTeam) * nShelvingTeams, IPC_CREAT | 0666);
     if (shelving_shm_id == -1) {
         perror("Error creating shelving team shared memory in the parent process");
         exit(EXIT_FAILURE);
     }
 
-    /* Attach the shared memory segment */
+    /* Attach the shared memory segment for teams */
     shared_shelvingTeams = (ShelvingTeam *) shmat(shelving_shm_id, NULL, 0);
     if (shared_shelvingTeams == (void *) -1) {
         perror("Error attaching shelving team shared memory in the parent process");
@@ -189,20 +202,22 @@ void createSharedMemories() {
     }
 }
 
+/* function to create semaphores for product */
 void createSemaphoresForProducts() {
-    /* Create semaphore for available items */
+    /* Create semaphore for available products */
     items_sem_id = semget(getpid(), num_of_products, IPC_CREAT | 0666);
     if (items_sem_id == -1) {
         perror("Error creating semaphores in the parent process");
         exit(EXIT_FAILURE);
     }
 
-    /* Initialize each semaphore to its item */
+    /* Initialize each semaphore to its product */
     for (int i = 0; i < num_of_products; ++i) {
         semctl(items_sem_id, i, SETVAL, 1);
     }
 }
 
+/* function to create massage queue*/
 void createMsgQueue() {
     /* Create message queue */
     message_queue_id = msgget(getpid(), IPC_CREAT | 0666);
@@ -212,8 +227,9 @@ void createMsgQueue() {
     }
 }
 
+/* function to real products file and saved it in the shared memory for products */
 void readProducts() {
-    /* Read from the items_list file */
+    /* Read from the products file */
     FILE *file = fopen("Products.txt", "r");
     if (file == NULL) {
         perror("Error opening items_list.txt file");
@@ -229,10 +245,10 @@ void readProducts() {
         /* split each line using ',' as the delimiter */
         char *token = strtok(buffer, ",");
 
-        /* Each line split to (name, quantity, price) */
+        /* Each line split to (name, quantity) */
         for (int i = 0; i < 2; ++i) {
 
-            /* Save the items name to the items shared memory */
+            /* Save the product name to the items shared memory */
             if (i == 0) {
                 shared_products[products_count].name[0] = '\0';
                 strncat(shared_products[products_count].name, token,
@@ -262,7 +278,9 @@ void readProducts() {
 
 }
 
+/* function to generate each team */
 void generateShelvingTeams() {
+
     char num_of_product_str[20];
     char product_threshold_str[20];
     char simulation_threshold_str[20];
@@ -281,7 +299,8 @@ void generateShelvingTeams() {
             perror("Error forking cashier process"); /* Error while forking */
             exit(EXIT_FAILURE);
         } else if (shelving_pid == 0) {
-            /* Execute the customer process with command-line arguments */
+
+            /* Execute the ShelvingTeam process with command-line arguments */
             execlp("./ShelvingTeam", "./ShelvingTeam", num_of_product_str, product_threshold_str,
                    simulation_threshold_str, num_of_product_on_shelves_str, (char *) NULL);
 
@@ -297,6 +316,7 @@ void generateShelvingTeams() {
     }
 }
 
+/* function to generate each customer */
 void generateCustomers() {
 
     char num_of_product_str[20];
@@ -319,12 +339,13 @@ void generateCustomers() {
             /* Parent process */
             childProcesses[childCounter++] = pid;/* Add the child process ID to the array*/
         }
-
 }
 
+/* create thread to check if products reach the min threshold value and send message queue to a chosen manager */
 void *productsCheck() {
     int out_of_stock;
     int total_time = 0;
+
     while (1) {
         out_of_stock = 0;
         for (int i = 0; i < num_of_products; ++i) {
@@ -340,6 +361,7 @@ void *productsCheck() {
                 printf("Product %s reached or fell below the threshold! -> %d\n", shared_products[i].name,
                        shared_products[i].quantity_on_shelves);
 
+                /* check if team manager is busy */
                 int assigned_before = 0;
                 for (int j = 0; j < nShelvingTeams; ++j) {
                     if (shared_shelvingTeams[j].current_product_index == i) {
@@ -365,6 +387,7 @@ void *productsCheck() {
                 msg.receiver_id = shared_shelvingTeams[random_team_index].id;
                 msg.type = 1;
                 msg.product_index = i;
+
                 /* Send the message */
                 int mq_key = msg.receiver_id;
                 int msg_queue_id = msgget(mq_key, 0666 | IPC_CREAT);
@@ -381,6 +404,7 @@ void *productsCheck() {
         sleep(1);
         total_time += 5;
 
+        /* check if the storage out of stock */
         if (out_of_stock == products_count) {
             break;
         }
@@ -388,20 +412,28 @@ void *productsCheck() {
     return NULL;
 }
 
+/* thread to create customer randomly */
 void *customersGeneration() {
 
     float current_time = 0.0f;
+
+    /* assign initial random number of customers */
     numCustomers= generateRandomNumber(arrival_rate_min,arrival_rate_max);
+    int new_random = numCustomers;
     while(1){
-        //   printf("inside the while in the main\n");
         float delay = 4.0f;
+
+        /* check if the number of customers created less than the max number of customers, and check the interval time */
         if (numCustomers < MAX_CUSTOMERS && current_time >= delay) {
             current_time = 0.0f;
-            int new_random = generateRandomNumber(arrival_rate_min, arrival_rate_max);
+
             printf("numCustomers %d\n",numCustomers);
             for(int i = 0 ; i < new_random ;i++) {
                 generateCustomers();
             }
+
+            /* create another random number of customers */
+            new_random = generateRandomNumber(arrival_rate_min, arrival_rate_max);
             numCustomers += new_random; /* increase the number of created customers */
         }
         current_time += 1.0f / 60.0f;
