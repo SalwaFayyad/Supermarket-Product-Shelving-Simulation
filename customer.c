@@ -1,7 +1,7 @@
 #include "local.h"
 
 int num_of_products, customer_index, customer_shm_id, shm_id;
-Customer *customer, *customers_shared_memory;
+Customer *customers_shared_memory;
 Product *shared_products;
 
 void getSharedMemories();
@@ -21,10 +21,11 @@ int main(int argc, char *argv[]) {
 
     /* Get variables from argv */
     num_of_products = atoi(argv[1]);
+
     getSharedMemories();
     putCustomerOnSharedMemory();
     chooseItems();
-    //cleanup();
+    cleanup();
 
     /* Exit the child process */
     exit(EXIT_SUCCESS);
@@ -82,7 +83,10 @@ void chooseItems() {
         if (shop_time >= 0.5) {
             break;
         }
-        if (shared_products[i].quantity_on_shelves != 0 && rand() % 3 == 0) {
+        int random = generateRandomNumber(0, 3);
+        sleep(1);
+
+        if (shared_products[i].quantity_on_shelves != 0 && random % 3 == 0) {
             int qnt;
             if (shared_products[i].quantity_on_shelves < 5) {
                 qnt = generateRandomNumber(1, shared_products[i].quantity_on_shelves);
@@ -91,18 +95,12 @@ void chooseItems() {
             }
             lock(getppid(), i, "customer.c");
             shared_products[i].quantity_on_shelves -= qnt;
-            printf("customer %d took %d from shelve %s \n", getpid(), qnt, shared_products[i].name);
             unlock(getppid(), i, "customer.c");
 
-            customer->shopping_list[shopping_list_index][1] = qnt;
             customers_shared_memory[customer_index].shopping_list[shopping_list_index][1] = qnt;
-          printf("customer %d bought %d from %s \n", getpid(), qnt, shared_products[i].name);
-            customer->shopping_list[shopping_list_index][0] = i;
+            printf("customer %d bought %d from %s \n", getpid(), qnt, shared_products[i].name);
             customers_shared_memory[customer_index].shopping_list[shopping_list_index][0] = i;
 
-            printf("chosen products %d for customer %d and the quantity is %d \n", customer->shopping_list[shopping_list_index][0],getpid(),customer->shopping_list[shopping_list_index][1]);
-
-            sleep(1);
             shop_time += 1.0f / 60;
             shopping_list_index++;
         }
@@ -111,6 +109,7 @@ void chooseItems() {
 
 
 void cleanup() {
+    customers_shared_memory[customer_index].id = -1;
     shmdt(customers_shared_memory);
     shmdt(shared_products);
 }

@@ -79,11 +79,6 @@ void teamForming() {
         }
 
     }
-    /* Reaching the end of shared memory without finding available space */
-//    if (ind == SHELVING_TEAMS_NUMBER) {
-//        perror("Maximum size of shelving teams shared memory in ShelvingTeam.c");
-//        exit(EXIT_FAILURE);
-//    }
 
     /* Create manager thread at the chosen random index */
     pthread_create(&shared_shelvingTeams[ind].manager_thread, NULL, (void *) managerThread, NULL);
@@ -113,10 +108,10 @@ void *managerThread() {
             printf("team %d received message from main process\n", getpid());
             int product_index = msg.product_index;
             shared_shelvingTeams[ind].current_product_index = product_index;
-            /* get the necessary amount from the storage */
             shared_shelvingTeams[ind].manager_status = 1;
 
-            lock(getppid(), product_index, "ShelvingTeam.c");
+            /* get the necessary amount from the storage */
+
             printf("********************************BEFORE\n");
             printf("******* (inside team %d) %s shelve %d storage %d\n",
                    getpid(),
@@ -125,35 +120,36 @@ void *managerThread() {
                    shared_products[product_index].quantity_in_storage
             );
 
-            sleep(2);
-            pthread_mutex_lock(&task_mutex);
 
+            pthread_mutex_lock(&task_mutex);
+            sleep(2);
+
+            lock(getppid(), product_index, "ShelvingTeam.c");
             if (shared_products[product_index].quantity_in_storage +
                 shared_products[product_index].quantity_on_shelves <= num_of_product_on_shelves) {
-
                 shared_shelvingTeams[ind].rolling_cart_qnt = shared_products[product_index].quantity_in_storage;
                 shared_products[product_index].quantity_in_storage = 0;
-                shared_shelvingTeams[ind].employee_status = 1;
-                shared_shelvingTeams[ind].manager_status = -1;
-
-                // sleep(1);
             } else {
-                shared_shelvingTeams[ind].manager_status = -1;
-                shared_shelvingTeams[ind].employee_status = 1;
                 shared_shelvingTeams[ind].rolling_cart_qnt = num_of_product_on_shelves - shared_products[product_index].quantity_on_shelves;
                 shared_products[product_index].quantity_in_storage -=
                         num_of_product_on_shelves - shared_products[product_index].quantity_on_shelves;
-                //sleep(1);
             }
             printf("team %d rolling cart: %d for product %s\n", getpid(), shared_shelvingTeams[ind].rolling_cart_qnt,
                    shared_products[product_index].name);
+
+            shared_shelvingTeams[ind].manager_status = -1;
             unlock(getppid(), product_index, "ShelvingTeam.c");
 
+
             /* Signal employee threads to do the work */
+            shared_shelvingTeams[ind].employee_status = 1;
             for (int i = 0; i < shared_shelvingTeams[ind].rolling_cart_qnt; ++i) {
                 pthread_cond_signal(&task_available);
             }
+//            if (shared_shelvingTeams[ind].rolling_cart_qnt)
             pthread_mutex_unlock(&task_mutex);
+
+            sleep(2);
         }
     }
     return NULL;
@@ -162,7 +158,7 @@ void *managerThread() {
 void *employeeThreads() {
     while (1) {
         // to avoid race condition between employees threads
-        sleep(2);
+//        sleep(2);
         pthread_mutex_lock(&task_mutex);
 
         while (shared_shelvingTeams[ind].rolling_cart_qnt == 0) {
@@ -188,8 +184,9 @@ void *employeeThreads() {
         );
 
         if (shared_shelvingTeams[ind].rolling_cart_qnt == 0) {
-            shared_shelvingTeams[ind].current_product_index = -1;
             shared_shelvingTeams[ind].employee_status = -1;
+            shared_shelvingTeams[ind].current_product_index = -1;
+            shared_shelvingTeams[ind].product_index = -1;
         }
 
         unlock(getppid(), product_index, "ShelvingTeam.c");
@@ -202,5 +199,4 @@ void clean_up() {
     shmdt(shared_shelvingTeams);
     pthread_mutex_destroy(&task_mutex);
     pthread_cond_destroy(&task_available);
-    printf("finished %d\n", getpid());
 }

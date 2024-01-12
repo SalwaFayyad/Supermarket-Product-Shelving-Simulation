@@ -27,7 +27,7 @@ void generateShelvingTeams();
 
 void *productsCheck();
 
-void *CustomersCheck();
+void *customersGeneration();
 
 void cleanup();
 
@@ -91,14 +91,14 @@ int main(int argc, char *argv[]) {
         perror("Error creating products check thread");
         exit(EXIT_FAILURE);
     }
-    if (pthread_create(&Customer_check_thread, NULL, CustomersCheck, NULL) != 0) {
+    if (pthread_create(&Customer_check_thread, NULL, customersGeneration, NULL) != 0) {
         perror("Error creating products check thread");
         exit(EXIT_FAILURE);
     }
 
     startOpengl();
-
-    sleep(60);
+    pthread_join(products_check_thread, NULL);
+//    sleep(60);
     killChildProcesses();
     cleanup();
     return 0;
@@ -324,6 +324,7 @@ void generateCustomers() {
 
 void *productsCheck() {
     int out_of_stock;
+    int total_time = 0;
     while (1) {
         out_of_stock = 0;
         for (int i = 0; i < num_of_products; ++i) {
@@ -338,6 +339,18 @@ void *productsCheck() {
             if (shared_products[i].quantity_on_shelves <= product_threshold) {
                 printf("Product %s reached or fell below the threshold! -> %d\n", shared_products[i].name,
                        shared_products[i].quantity_on_shelves);
+
+                int assigned_before = 0;
+                for (int j = 0; j < nShelvingTeams; ++j) {
+                    if (shared_shelvingTeams[j].current_product_index == i) {
+                        assigned_before = 1;
+                        break;
+                    }
+                }
+
+                if (assigned_before == 1) {
+                    continue;
+                }
 
                 /** Send a message to a random team to refill the shelve **/
 
@@ -361,12 +374,13 @@ void *productsCheck() {
                     exit(EXIT_FAILURE);
                 }
                 printf("\n\nmessage sent to %d\n\n", msg.receiver_id);
-                sleep(2);
+                usleep(100000);
             }
         }
 
         /* Sleep for a period before checking again */
         sleep(1);
+        total_time += 5;
 
         if (out_of_stock == products_count) {
             break;
@@ -375,7 +389,7 @@ void *productsCheck() {
     return NULL;
 }
 
-void *CustomersCheck() {
+void *customersGeneration() {
 
     float current_time = 0.0f;
     numCustomers= generateRandomNumber(arrival_rate_min,arrival_rate_max);
@@ -596,36 +610,32 @@ void initializeManager(){
 }
 
 void display() {
-
     glClear(GL_COLOR_BUFFER_BIT);
     drawProducts();
     displayTeams();
     drawCustomers();
     glutSwapBuffers();
-
 }
 
 void timer(int) {
     glutPostRedisplay();
-    if(shared_shelvingTeams[random_team_index].manager_status == 1){
-        shared_shelvingTeams[random_team_index].x_position_manager = shared_products[shared_shelvingTeams[random_team_index].product_index].x_position_on_storage;
-        shared_shelvingTeams[random_team_index].y_position_manager = shared_products[shared_shelvingTeams[random_team_index].product_index].y_position_on_storage - 2.0;
+    glutTimerFunc(1000/60, timer, 0);
+    for (int i = 0; i < nShelvingTeams; ++i) {
+        if(shared_shelvingTeams[i].manager_status == 1 && shared_shelvingTeams[i].current_product_index != -1){
+            shared_shelvingTeams[i].x_position_manager = shared_products[shared_shelvingTeams[i].current_product_index].x_position_on_storage;
+            shared_shelvingTeams[i].y_position_manager = shared_products[shared_shelvingTeams[i].current_product_index].y_position_on_storage;
+        }else{
+            shared_shelvingTeams[i].x_position_manager = managerX;
+            shared_shelvingTeams[i].y_position_manager = managerY[i];
+        }
+        if(shared_shelvingTeams[i].employee_status == 1 && shared_shelvingTeams[i].current_product_index != -1){
+            shared_shelvingTeams[i].x_position_employee = shared_products[shared_shelvingTeams[i].current_product_index].x_position_on_shelves;
+            shared_shelvingTeams[i].y_position_employee = shared_products[shared_shelvingTeams[i].current_product_index].y_position_on_shelves;
+        }else{
+            shared_shelvingTeams[i].x_position_employee = managerX;
+            shared_shelvingTeams[i].y_position_employee = managerY[i];
+        }
     }
-
-    else{
-        shared_shelvingTeams[random_team_index].x_position_manager = managerX;
-        shared_shelvingTeams[random_team_index].y_position_manager = managerY[random_team_index];
-    }
-    if(shared_shelvingTeams[random_team_index].employee_status == 1){
-        shared_shelvingTeams[random_team_index].x_position_employee = shared_products[shared_shelvingTeams[random_team_index].product_index].x_position_on_shelves;
-        shared_shelvingTeams[random_team_index].y_position_employee = shared_products[shared_shelvingTeams[random_team_index].product_index].y_position_on_shelves - 2.0;
-
-    }else{
-        shared_shelvingTeams[random_team_index].x_position_employee = managerX;
-        shared_shelvingTeams[random_team_index].y_position_employee = managerY[random_team_index];
-    }
-    glutTimerFunc(1000 / 60, timer, 0);
-
 }
 
 void reshape(int width, int height) {
