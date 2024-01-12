@@ -43,8 +43,9 @@ Customer *shared_customers;
 
 pthread_t products_check_thread,Customer_check_thread;
 
-int random_team_index, numCustomers = 0, minutes = 0, seconds = 0;
+int random_team_index, numCustomers = 0, minutes = 0;
 float space = 50.0f, squareSize = 55.0f, managerX, managerY[10];
+double seconds = 0;
 
 void drawCustomers();
 
@@ -98,10 +99,8 @@ int main(int argc, char *argv[]) {
     }
 
     startOpengl();
-
-//    sleep(60);
-//    killChildProcesses();
-//    cleanup();
+    killChildProcesses();
+    cleanup();
     return 0;
 }
 
@@ -441,10 +440,11 @@ void drawCustomers() {
     for (int i = 0; i < numCustomers; i++) {
         float x = i * spacing + 30.0; // Adjust the starting position
         float y = 980; // Adjust the y-coordinate
-//        if (shared_customers[i].id == -1 ){
-//            glColor3f(0.0, 0.0,0.0);
-//        }
-        glColor3f(0.6, 0.2, 1.0);
+        if (shared_customers[i].id == -1 ){
+            glColor3f(0.0, 0.0,0.0);
+        } else {
+            glColor3f(0.6, 0.2, 1.0);
+        }
         // Draw a square for each customer
         glBegin(GL_QUADS);
         glVertex2f(x - 20, y - 20); // Top left
@@ -628,8 +628,8 @@ void timer(int) {
     }else{
         glutPostRedisplay();
         glutTimerFunc(1000/60, timer, 0);
-        seconds++;
-        if(seconds == 60){
+        seconds += 0.016;
+        if(seconds >= 60.0){
             minutes++;
             seconds = 0;
         }
@@ -680,4 +680,6 @@ void terminateProgram(){
     cleanup();
     /* Register the closeWindow function to be called on window closure */
     glutLeaveMainLoop();
+
+    exit(EXIT_SUCCESS);
 }
