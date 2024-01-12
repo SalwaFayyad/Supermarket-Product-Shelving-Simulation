@@ -53,7 +53,7 @@ time_t start_time;
 
 int numCustomers = 0, minutes = 0, elapsed_time = 0;
 float space = 50.0f, squareSize = 55.0f, managerX, managerY[10];
-char *simulation_end_statement = "";
+char *simulation_end_statement = "", minStr[5];
 
 void drawCustomers();
 
@@ -513,7 +513,6 @@ void drawTime() {
     glColor3f(0.1, 0.5, 0.7); /* Set the color for the square */
     glRasterPos2f(1450, 940); /* Adjust position for drawing text within the square */
     int min = minutes;
-    char minStr[5];
     sprintf(minStr, "%d", min);
     for (int i = 0; secondsStr[i] != '\0'; ++i) {
         /* Draw a character using the GLUT_BITMAP_HELVETICA_18 font at the current raster position */
@@ -755,6 +754,7 @@ void timer(int) {
         }
     }
     minutes = elapsed_time / 60;
+    minStr = "";
 
     /* check the simulation threshold or number of products in storage to finish the program */
     if (elapsed_time >= (simulation_threshold * 60.0) || storage_finished == 1) {
