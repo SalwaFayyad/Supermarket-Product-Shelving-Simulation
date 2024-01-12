@@ -501,8 +501,8 @@ void drawTime() {
         secondStr++;
     }
 
-    glColor3f(0.1, 0.5, 0.7); /* Set the color for the square */
-
+    glColor3f(0, 0, 0); /* Set the color for the square */
+    glBegin(GL_QUADS);
     /* Define the vertices of the square */
     glVertex2f(1400, 930); /* Top-left corner */
     glVertex2f(1400, 930); /* Bottom-left corner */
@@ -510,7 +510,7 @@ void drawTime() {
     glVertex2f(1450, 930); /* Top-right corner */
 
     glEnd(); /* End drawing the square */
-
+    glColor3f(0.1, 0.5, 0.7); /* Set the color for the square */
     glRasterPos2f(1450, 940); /* Adjust position for drawing text within the square */
     int min = minutes;
     char minStr[5];
