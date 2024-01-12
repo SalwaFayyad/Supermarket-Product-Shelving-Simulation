@@ -512,9 +512,9 @@ void drawTime() {
     glEnd(); /* End drawing the square */
 
     glRasterPos2f(1450, 940); /* Adjust position for drawing text within the square */
-
+    int min = minutes;
     char minStr[5];
-    sprintf(minStr, "%d", minutes);
+    sprintf(minStr, "%d", min);
     for (int i = 0; secondsStr[i] != '\0'; ++i) {
         /* Draw a character using the GLUT_BITMAP_HELVETICA_18 font at the current raster position */
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, minStr[i]);
@@ -769,7 +769,7 @@ void timer(int) {
             simulation_end_statementStr++;
         }
         glFlush();
-        sleep(10);
+        sleep(5);
         terminateProgram();
     } else {
         /* check the status of employees, and manager of each team */
