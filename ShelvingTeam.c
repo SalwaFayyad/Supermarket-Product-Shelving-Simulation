@@ -157,25 +157,28 @@ void *managerThread() {
 /* the employee thread function */
 void *employeeThreads() {
     while (1) {
-        // to avoid race condition between employees threads
-//        sleep(2);
+        /* to avoid race condition between threads */
         pthread_mutex_lock(&task_mutex);
 
+        /* wait until the rolling cart has items */
         while (shared_shelvingTeams[ind].rolling_cart_qnt == 0) {
+            /* wait for the signal from manager */
             pthread_cond_wait(&task_available, &task_mutex);
         }
 
+        /* decrease the rolling cart quantity by 1 */
         shared_shelvingTeams[ind].rolling_cart_qnt -= 1;
 
         int product_index = shared_shelvingTeams[ind].current_product_index;
         lock(getppid(), product_index, "ShelvingTeam.c");
 
+        /* increase the quantity on the shelve by 1 */
         usleep(100000);
         shared_products[product_index].quantity_on_shelves += 1;
         usleep(100000);
 
-        printf("********************************AFTER\n");
-        printf("******* (inside team %d) %s shelve %d quantity %d storage %d\n",
+        printf("********************************AFTER***************************\n");
+        printf("(inside team %d) %s shelve %d quantity %d storage %d\n",
                getpid(),
                shared_products[product_index].name,
                shared_products[product_index].quantity_on_shelves,
@@ -183,17 +186,18 @@ void *employeeThreads() {
                shared_products[product_index].quantity_in_storage
         );
 
+        /* if the last item was put, then make the team available again */
         if (shared_shelvingTeams[ind].rolling_cart_qnt == 0) {
             shared_shelvingTeams[ind].employee_status = -1;
             shared_shelvingTeams[ind].current_product_index = -1;
-            shared_shelvingTeams[ind].product_index = -1;
         }
-
         unlock(getppid(), product_index, "ShelvingTeam.c");
+        /* release the mutex lock */
         pthread_mutex_unlock(&task_mutex);
     }
 }
 
+/* detach shard memories and destroy threads mutex and condition*/
 void clean_up() {
     shmdt(shared_products);
     shmdt(shared_shelvingTeams);
