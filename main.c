@@ -46,9 +46,9 @@ pthread_t products_check_thread,Customer_check_thread;
 pid_t childProcesses[1000];
 
 int product_shm_id, products_count, nShelvingTeams = SHELVING_TEAMS_NUMBER, customers_shm_id,
-    shelving_shm_id, items_sem_id, message_queue_id, childCounter = 0, random_team_index;
+    shelving_shm_id, items_sem_id, message_queue_id, childCounter = 0, random_team_index, storage_finished = 0;
 
-
+time_t start_time;
 /*********************************** FUNCTIONS & GLOBAL VARIABLES of opengl****************************************/
 
 int numCustomers = 0, minutes = 0;
@@ -395,7 +395,7 @@ void *productsCheck() {
                     perror("Error sending refill shelves message in main.c");
                     exit(EXIT_FAILURE);
                 }
-                printf("\n\nmessage sent to %d\n\n", msg.receiver_id);
+                printf("\n\nmessage sent to %d to restock %s\n\n", random_team_index, shared_products[i].name);
                 usleep(100000);
             }
         }
@@ -406,6 +406,7 @@ void *productsCheck() {
 
         /* check if the storage out of stock */
         if (out_of_stock == products_count) {
+            storage_finished = 1;
             break;
         }
     }
@@ -427,7 +428,6 @@ void *customersGeneration() {
         if (numCustomers < MAX_CUSTOMERS && current_time >= delay) {
             current_time = 0.0f;
 
-            printf("numCustomers %d\n",numCustomers);
             for(int i = 0 ; i < new_random ;i++) {
                 generateCustomers();
             }
@@ -654,16 +654,16 @@ void display() {
 }
 
 void timer(int) {
-    if(minutes >= simulation_threshold){
+
+    time_t current_time = time(NULL);
+
+    double elapsed_time = difftime(current_time, start_time);
+
+    if(elapsed_time >= (simulation_threshold * 60.0) || storage_finished == 1){
         terminateProgram();
     }else{
         glutPostRedisplay();
         glutTimerFunc(1000/60, timer, 0);
-        seconds += 0.016;
-        if(seconds >= 60.0){
-            minutes++;
-            seconds = 0;
-        }
         for (int i = 0; i < nShelvingTeams; ++i) {
             if(shared_shelvingTeams[i].manager_status == 1 && shared_shelvingTeams[i].current_product_index != -1){
                 shared_shelvingTeams[i].x_position_manager = shared_products[shared_shelvingTeams[i].current_product_index].x_position_on_storage;
@@ -694,6 +694,7 @@ void reshape(int width, int height) {
 }
 
 void startOpengl() {
+    start_time = time(NULL);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
     glutInitWindowSize(1500, 1000);
     glutInitWindowPosition(10, 10);

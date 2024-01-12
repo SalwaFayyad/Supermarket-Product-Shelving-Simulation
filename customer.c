@@ -81,25 +81,24 @@ void chooseItems() {
     int shopping_list_index = 0;
     for (int i = 0; i < num_of_products; ++i) {
         /* if the shopping time exceeded 0.5 minute then leave */
-        if (shop_time >= 0.5) {
+        if (shop_time >= 0.4) {
             break;
         }
         /* for buying products randomly */
         int random = generateRandomNumber(0, 3);
         sleep(1);
-
+        lock(getppid(), i, "customer.c");
         if (shared_products[i].quantity_on_shelves != 0 && random % 3 == 0) {
             /* decide the quantity to take from the product */
             int qnt;
-            if (shared_products[i].quantity_on_shelves < 5) {
+            if (shared_products[i].quantity_on_shelves < 7) {
                 qnt = generateRandomNumber(1, shared_products[i].quantity_on_shelves);
             } else {
-                qnt = generateRandomNumber(1, 5);
+                qnt = generateRandomNumber(1, 7);
             }
             /* take the quantity from the shelve */
-            lock(getppid(), i, "customer.c");
             shared_products[i].quantity_on_shelves -= qnt;
-            unlock(getppid(), i, "customer.c");
+
             /* put it in the shopping list */
             customers_shared_memory[customer_index].shopping_list[shopping_list_index][1] = qnt;
             printf("customer %d bought %d from %s \n", getpid(), qnt, shared_products[i].name);
@@ -108,6 +107,7 @@ void chooseItems() {
             shop_time += 1.0f / 60;
             shopping_list_index++;
         }
+        unlock(getppid(), i, "customer.c");
     }
 }
 
@@ -116,4 +116,5 @@ void cleanup() {
     customers_shared_memory[customer_index].id = -1;
     shmdt(customers_shared_memory);
     shmdt(shared_products);
+    printf("customer %d done\n", getpid());
 }

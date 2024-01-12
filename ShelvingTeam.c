@@ -101,19 +101,22 @@ void *managerThread() {
     int msg_queue_id = msgget(mq_key, 0666 | IPC_CREAT);
     Message msg;
     /* Wait for messages from main parent to know if it is time to restock */
-    printf("%d waiting...\n", getpid());
+    printf("%d waiting...\n", ind);
     while (msgrcv(msg_queue_id, &msg, sizeof(msg), 0, 0) > 0) {
         /* the message received */
         if (msg.receiver_id == getpid() && msg.type == 1) {
-            printf("team %d received message from main process\n", getpid());
+            printf("team %d received message from main process\n", ind);
             int product_index = msg.product_index;
             shared_shelvingTeams[ind].current_product_index = product_index;
+
             /* manager start working */
+            sleep(2);
             shared_shelvingTeams[ind].manager_status = 1;
+            shared_shelvingTeams[ind].rolling_cart_qnt = 0;
             /* get the necessary amount from the storage */
             printf("********************************BEFORE********************************\n");
             printf("(inside team %d) %s shelve %d storage %d\n",
-                   getpid(),
+                   ind,
                    shared_products[product_index].name,
                    shared_products[product_index].quantity_on_shelves,
                    shared_products[product_index].quantity_in_storage
@@ -134,7 +137,7 @@ void *managerThread() {
                 shared_products[product_index].quantity_in_storage -=
                         num_of_product_on_shelves - shared_products[product_index].quantity_on_shelves;
             }
-            printf("team %d rolling cart: %d for product %s\n", getpid(), shared_shelvingTeams[ind].rolling_cart_qnt,
+            printf("team %d rolling cart: %d for product %s\n", ind, shared_shelvingTeams[ind].rolling_cart_qnt,
                    shared_products[product_index].name);
 
             /* manager has done his work */
@@ -147,9 +150,12 @@ void *managerThread() {
                 pthread_cond_signal(&task_available);
             }
             /* manager released the mutex lock */
+            lock(getppid(), product_index, "ShelvingTeam.c");
             pthread_mutex_unlock(&task_mutex);
-            sleep(2);
         }
+    }
+    if (msgrcv(msg_queue_id, &msg, sizeof(msg), 0, IPC_NOWAIT) == -1) {
+        perror("msgrcv");
     }
     return NULL;
 }
@@ -163,14 +169,14 @@ void *employeeThreads() {
         /* wait until the rolling cart has items */
         while (shared_shelvingTeams[ind].rolling_cart_qnt == 0) {
             /* wait for the signal from manager */
+            shared_shelvingTeams[ind].employee_status = -1;
             pthread_cond_wait(&task_available, &task_mutex);
         }
-
+        shared_shelvingTeams[ind].employee_status = 1;
         /* decrease the rolling cart quantity by 1 */
         shared_shelvingTeams[ind].rolling_cart_qnt -= 1;
 
         int product_index = shared_shelvingTeams[ind].current_product_index;
-        lock(getppid(), product_index, "ShelvingTeam.c");
 
         /* increase the quantity on the shelve by 1 */
         usleep(100000);
@@ -179,7 +185,7 @@ void *employeeThreads() {
 
         printf("********************************AFTER***************************\n");
         printf("(inside team %d) %s shelve %d quantity %d storage %d\n",
-               getpid(),
+               ind,
                shared_products[product_index].name,
                shared_products[product_index].quantity_on_shelves,
                shared_shelvingTeams[ind].rolling_cart_qnt,
@@ -187,11 +193,11 @@ void *employeeThreads() {
         );
 
         /* if the last item was put, then make the team available again */
-        if (shared_shelvingTeams[ind].rolling_cart_qnt == 0) {
+        if (shared_shelvingTeams[ind].rolling_cart_qnt <= 0) {
+            unlock(getppid(), product_index, "ShelvingTeam.c");
             shared_shelvingTeams[ind].employee_status = -1;
             shared_shelvingTeams[ind].current_product_index = -1;
         }
-        unlock(getppid(), product_index, "ShelvingTeam.c");
         /* release the mutex lock */
         pthread_mutex_unlock(&task_mutex);
     }
