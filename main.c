@@ -365,7 +365,6 @@ void *productsCheck() {
                 msg.receiver_id = shared_shelvingTeams[random_team_index].id;
                 msg.type = 1;
                 msg.product_index = i;
-                shared_shelvingTeams[random_team_index].product_index = i;
                 /* Send the message */
                 int mq_key = msg.receiver_id;
                 int msg_queue_id = msgget(mq_key, 0666 | IPC_CREAT);

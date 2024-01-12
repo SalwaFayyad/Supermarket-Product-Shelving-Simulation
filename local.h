@@ -41,8 +41,6 @@ typedef struct{
     float y_position_on_storage;
     float x_position_on_shelves;
     float y_position_on_shelves;
-    pthread_mutex_t task_mutex;
-    //  int last_item_flag;
 }Product;
 
 typedef struct {
@@ -57,7 +55,6 @@ typedef struct {
     pthread_t employee_threads[MAX_SHELVES_EMPLOYEES-1];
     int current_product_index;
     int rolling_cart_qnt;
-    int product_index;
     float x_position_manager;
     float y_position_manager;
     float x_position_employee;
