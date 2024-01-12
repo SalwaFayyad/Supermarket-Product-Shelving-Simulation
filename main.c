@@ -51,9 +51,8 @@ int product_shm_id, products_count, nShelvingTeams = SHELVING_TEAMS_NUMBER, cust
 time_t start_time;
 /*********************************** FUNCTIONS & GLOBAL VARIABLES of opengl****************************************/
 
-int numCustomers = 0, minutes = 0;
+int numCustomers = 0, minutes = 0, elapsed_time = 0;
 float space = 50.0f, squareSize = 55.0f, managerX, managerY[10];
-int elapsed_time = 0.0;
 char *simulation_end_statement = "";
 
 void drawCustomers();
@@ -750,7 +749,7 @@ void timer(int) {
     } else {
         simulation_end_statement = " STORAGE FINISH ";
     }
-    for (int i = 1; i <= simulation_threshold; i++) {
+    for (int i = 1; i <= simulation_threshold * 60 ; i++) {
         if (elapsed_time == i * 60) {
             minutes += 1;
         }
@@ -797,7 +796,8 @@ void timer(int) {
 }
 
 void reshape(int width, int height) {
-    glViewport(0, 0, (GLsizei) width, (GLsizei) height); /* Set the viewport of the window to cover the entire window area */
+    glViewport(0, 0, (GLsizei) width,
+               (GLsizei) height); /* Set the viewport of the window to cover the entire window area */
     glMatrixMode(GL_PROJECTION); /* Switch to the projection matrix mode */
     glLoadIdentity(); /* Load the identity matrix into the projection matrix */
     gluOrtho2D(0.0, 1500.0, 0.0, 1000.0); /* Adjust orthographic projection based on window size */
