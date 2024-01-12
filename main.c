@@ -43,7 +43,7 @@ Customer *shared_customers;
 
 pthread_t products_check_thread,Customer_check_thread;
 
-int random_team_index, numCustomers = 0;
+int random_team_index, numCustomers = 0, minutes = 0, seconds = 0;
 float space = 50.0f, squareSize = 55.0f, managerX, managerY[10];
 
 void drawCustomers();
@@ -68,6 +68,7 @@ void reshape(int width, int height);
 
 void startOpengl();
 
+void terminateProgram();
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -97,10 +98,10 @@ int main(int argc, char *argv[]) {
     }
 
     startOpengl();
-    pthread_join(products_check_thread, NULL);
+
 //    sleep(60);
-    killChildProcesses();
-    cleanup();
+//    killChildProcesses();
+//    cleanup();
     return 0;
 }
 
@@ -421,6 +422,8 @@ void killChildProcesses() {
 
 void cleanup() {
     /* Detach All shared memory and Semaphores created */
+    pthread_cancel(products_check_thread);
+    pthread_cancel(Customer_check_thread);
     shmdt(shared_customers);
     shmdt(shared_products);
     shmctl(product_shm_id, IPC_RMID, (struct shmid_ds *) 0);
@@ -438,8 +441,10 @@ void drawCustomers() {
     for (int i = 0; i < numCustomers; i++) {
         float x = i * spacing + 30.0; // Adjust the starting position
         float y = 980; // Adjust the y-coordinate
+//        if (shared_customers[i].id == -1 ){
+//            glColor3f(0.0, 0.0,0.0);
+//        }
         glColor3f(0.6, 0.2, 1.0);
-
         // Draw a square for each customer
         glBegin(GL_QUADS);
         glVertex2f(x - 20, y - 20); // Top left
@@ -618,24 +623,34 @@ void display() {
 }
 
 void timer(int) {
-    glutPostRedisplay();
-    glutTimerFunc(1000/60, timer, 0);
-    for (int i = 0; i < nShelvingTeams; ++i) {
-        if(shared_shelvingTeams[i].manager_status == 1 && shared_shelvingTeams[i].current_product_index != -1){
-            shared_shelvingTeams[i].x_position_manager = shared_products[shared_shelvingTeams[i].current_product_index].x_position_on_storage;
-            shared_shelvingTeams[i].y_position_manager = shared_products[shared_shelvingTeams[i].current_product_index].y_position_on_storage;
-        }else{
-            shared_shelvingTeams[i].x_position_manager = managerX;
-            shared_shelvingTeams[i].y_position_manager = managerY[i];
+    if(minutes >= simulation_threshold){
+        terminateProgram();
+    }else{
+        glutPostRedisplay();
+        glutTimerFunc(1000/60, timer, 0);
+        seconds++;
+        if(seconds == 60){
+            minutes++;
+            seconds = 0;
         }
-        if(shared_shelvingTeams[i].employee_status == 1 && shared_shelvingTeams[i].current_product_index != -1){
-            shared_shelvingTeams[i].x_position_employee = shared_products[shared_shelvingTeams[i].current_product_index].x_position_on_shelves;
-            shared_shelvingTeams[i].y_position_employee = shared_products[shared_shelvingTeams[i].current_product_index].y_position_on_shelves;
-        }else{
-            shared_shelvingTeams[i].x_position_employee = managerX;
-            shared_shelvingTeams[i].y_position_employee = managerY[i];
+        for (int i = 0; i < nShelvingTeams; ++i) {
+            if(shared_shelvingTeams[i].manager_status == 1 && shared_shelvingTeams[i].current_product_index != -1){
+                shared_shelvingTeams[i].x_position_manager = shared_products[shared_shelvingTeams[i].current_product_index].x_position_on_storage;
+                shared_shelvingTeams[i].y_position_manager = shared_products[shared_shelvingTeams[i].current_product_index].y_position_on_storage;
+            }else{
+                shared_shelvingTeams[i].x_position_manager = managerX;
+                shared_shelvingTeams[i].y_position_manager = managerY[i];
+            }
+            if(shared_shelvingTeams[i].employee_status == 1 && shared_shelvingTeams[i].current_product_index != -1){
+                shared_shelvingTeams[i].x_position_employee = shared_products[shared_shelvingTeams[i].current_product_index].x_position_on_shelves;
+                shared_shelvingTeams[i].y_position_employee = shared_products[shared_shelvingTeams[i].current_product_index].y_position_on_shelves;
+            }else{
+                shared_shelvingTeams[i].x_position_employee = managerX;
+                shared_shelvingTeams[i].y_position_employee = managerY[i];
+            }
         }
     }
+
 }
 
 void reshape(int width, int height) {
@@ -656,4 +671,13 @@ void startOpengl() {
     glutDisplayFunc(display);
     glutTimerFunc(0, timer, 0);
     glutMainLoop();
+}
+
+void terminateProgram(){
+    /* End of simulation -> killing all child processes and remove shared memories, semaphores and message queue */
+    killChildProcesses();
+    /* Clean the code and deattached all shared memory and semaphores */
+    cleanup();
+    /* Register the closeWindow function to be called on window closure */
+    glutLeaveMainLoop();
 }

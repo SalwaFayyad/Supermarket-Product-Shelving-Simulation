@@ -109,7 +109,7 @@ void chooseItems() {
 
 
 void cleanup() {
-    customers_shared_memory[customer_index].id = -1;
+    //customers_shared_memory[customer_index].id = -1;
     shmdt(customers_shared_memory);
     shmdt(shared_products);
 }
